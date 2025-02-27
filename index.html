@@ -2,18 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Character Sheets</title>
+  <title>PDF Embed Example</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="mobile-web-app-capable" content="yes" />
 
-  <!-- Tailwind CSS CDN -->
+  <!-- Tailwind CSS CDN (Warning: For production, see notes below) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- React and ReactDOM 17 from jsDelivr -->
   <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js" crossorigin></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.development.js" crossorigin></script>
 
-  <!-- Babel for inline JSX -->
+  <!-- Babel (in-browser) - not recommended for production -->
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
   <!-- D&D-inspired font -->
@@ -25,6 +24,8 @@
       background: #f4e4bc url("https://www.transparenttextures.com/patterns/aged-paper.png") repeat;
       background-blend-mode: overlay;
       color: #4a2c0f;
+      margin: 0;
+      padding: 0;
     }
     .dark {
       background-color: #1a1a1a;
@@ -42,618 +43,69 @@
       border-radius: 20px;
       border: 3px solid #f5e8c7;
     }
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
   </style>
 </head>
-<body class="text-gray-800">
+<body>
   <div id="root"></div>
 
   <script type="text/babel">
-    /***********************************************
-     * Dark Mode Toggle
-     ***********************************************/
+    // DarkModeToggle without optional chaining:
     function DarkModeToggle() {
-      const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem("darkMode") === "true");
+      // Use older logic instead of optional chaining:
+      var storedDark = localStorage.getItem("darkMode");
+      var initialDark = (storedDark === "true");
 
-      React.useEffect(() => {
-        if (darkMode) document.body.classList.add("dark");
-        else document.body.classList.remove("dark");
+      const [darkMode, setDarkMode] = React.useState(initialDark);
+
+      React.useEffect(function() {
+        if (darkMode) {
+          document.body.classList.add("dark");
+        } else {
+          document.body.classList.remove("dark");
+        }
         localStorage.setItem("darkMode", darkMode);
       }, [darkMode]);
 
       return (
         <button
           className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-          onClick={() => setDarkMode(!darkMode)}
+          onClick={function() { setDarkMode(!darkMode); }}
         >
           {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
       );
     }
 
-    /***********************************************
-     * Backup / Restore / Copy-for-Prompt
-     ***********************************************/
-    function backupLocalStorage() {
-      const data = {
-        characters: localStorage.getItem("characters"),
-        darkMode: localStorage.getItem("darkMode"),
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "character_sheets_backup.json";
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function restoreLocalStorage(files) {
-      if (!files || !files.length) return;
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          for (const key in data) {
-            if (data[key] !== null && data[key] !== undefined) {
-              localStorage.setItem(key, data[key]);
-            }
-          }
-          alert("LocalStorage restored! Please refresh the page.");
-        } catch (err) {
-          console.error(err);
-          alert("Failed to restore. Invalid JSON?");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function copyForPrompt() {
-      const data = {
-        characters: JSON.parse(localStorage.getItem("characters") || "[]"),
-      };
-      const jsonString = JSON.stringify(data, null, 2);
-      navigator.clipboard.writeText(jsonString).then(() => {
-        alert("Data copied to clipboard!");
-      }).catch((err) => {
-        console.error("Failed to copy: ", err);
-        alert("Failed to copy data to clipboard.");
-      });
-    }
-
-    /***********************************************
-     * Character Sheet Form
-     * Recreates the "fillable" sections from your PDF
-     ***********************************************/
-    function CharacterSheetForm({ initialData, onSubmit, onCancel }) {
-      // We'll store each relevant field from the PDF in state.
-      // Adjust or add more fields as needed!
-      const [characterName, setCharacterName] = React.useState(initialData?.characterName || "");
-      const [species, setSpecies] = React.useState(initialData?.species || "");
-      const [subclass, setSubclass] = React.useState(initialData?.subclass || "");
-      const [charClass, setCharClass] = React.useState(initialData?.charClass || "");
-      const [level, setLevel] = React.useState(initialData?.level || 1);
-      const [background, setBackground] = React.useState(initialData?.background || "");
-      const [xp, setXp] = React.useState(initialData?.xp || 0);
-
-      const [strength, setStrength] = React.useState(initialData?.strength || 10);
-      const [dexterity, setDexterity] = React.useState(initialData?.dexterity || 10);
-      const [constitution, setConstitution] = React.useState(initialData?.constitution || 10);
-      const [intelligence, setIntelligence] = React.useState(initialData?.intelligence || 10);
-      const [wisdom, setWisdom] = React.useState(initialData?.wisdom || 10);
-      const [charisma, setCharisma] = React.useState(initialData?.charisma || 10);
-
-      const [currentHP, setCurrentHP] = React.useState(initialData?.currentHP || 0);
-      const [maxHP, setMaxHP] = React.useState(initialData?.maxHP || 0);
-      const [tempHP, setTempHP] = React.useState(initialData?.tempHP || 0);
-      const [armorClass, setArmorClass] = React.useState(initialData?.armorClass || 10);
-      const [initiative, setInitiative] = React.useState(initialData?.initiative || 0);
-      const [speed, setSpeed] = React.useState(initialData?.speed || 30);
-      const [size, setSize] = React.useState(initialData?.size || "Medium");
-
-      const [deathSaveSuccesses, setDeathSaveSuccesses] = React.useState(initialData?.deathSaveSuccesses || 0);
-      const [deathSaveFailures, setDeathSaveFailures] = React.useState(initialData?.deathSaveFailures || 0);
-
-      const [proficiencyBonus, setProficiencyBonus] = React.useState(initialData?.proficiencyBonus || 2);
-      const [heroicInspiration, setHeroicInspiration] = React.useState(initialData?.heroicInspiration || false);
-
-      // You can keep going for skills, saving throws, feats, spells, etc.
-      // For brevity, let's just show a couple of skill checkboxes:
-      const [skillStealth, setSkillStealth] = React.useState(initialData?.skillStealth || false);
-      const [skillPerception, setSkillPerception] = React.useState(initialData?.skillPerception || false);
-      // etc...
-
-      const [notes, setNotes] = React.useState(initialData?.notes || "");
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!characterName.trim()) {
-          alert("Character name is required.");
-          return;
-        }
-        // Build an object with all fields:
-        const formData = {
-          characterName,
-          species,
-          subclass,
-          charClass,
-          level,
-          background,
-          xp,
-          strength,
-          dexterity,
-          constitution,
-          intelligence,
-          wisdom,
-          charisma,
-          currentHP,
-          maxHP,
-          tempHP,
-          armorClass,
-          initiative,
-          speed,
-          size,
-          deathSaveSuccesses,
-          deathSaveFailures,
-          proficiencyBonus,
-          heroicInspiration,
-          skillStealth,
-          skillPerception,
-          notes,
-        };
-        onSubmit(formData);
-      };
-
-      return (
-        <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded shadow">
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium">Character Name</label>
-              <input
-                className="w-full border p-1 rounded"
-                value={characterName}
-                onChange={(e) => setCharacterName(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Class</label>
-              <input
-                className="w-full border p-1 rounded"
-                value={charClass}
-                onChange={(e) => setCharClass(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Subclass</label>
-              <input
-                className="w-full border p-1 rounded"
-                value={subclass}
-                onChange={(e) => setSubclass(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Species</label>
-              <input
-                className="w-full border p-1 rounded"
-                value={species}
-                onChange={(e) => setSpecies(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Level</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Background</label>
-              <input
-                className="w-full border p-1 rounded"
-                value={background}
-                onChange={(e) => setBackground(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">XP</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={xp}
-                onChange={(e) => setXp(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 border-t pt-3 mt-3">
-            <div>
-              <label className="block text-sm font-medium">Strength</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={strength}
-                onChange={(e) => setStrength(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Dexterity</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={dexterity}
-                onChange={(e) => setDexterity(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Constitution</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={constitution}
-                onChange={(e) => setConstitution(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Intelligence</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={intelligence}
-                onChange={(e) => setIntelligence(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Wisdom</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={wisdom}
-                onChange={(e) => setWisdom(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Charisma</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={charisma}
-                onChange={(e) => setCharisma(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Combat Stats */}
-          <div className="grid grid-cols-3 gap-3 border-t pt-3 mt-3">
-            <div>
-              <label className="block text-sm font-medium">Current HP</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={currentHP}
-                onChange={(e) => setCurrentHP(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Max HP</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={maxHP}
-                onChange={(e) => setMaxHP(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Temp HP</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={tempHP}
-                onChange={(e) => setTempHP(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Armor Class</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={armorClass}
-                onChange={(e) => setArmorClass(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Initiative</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={initiative}
-                onChange={(e) => setInitiative(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Speed</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={speed}
-                onChange={(e) => setSpeed(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Size</label>
-              <select
-                className="w-full border p-1 rounded"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-              >
-                <option>Tiny</option>
-                <option>Small</option>
-                <option>Medium</option>
-                <option>Large</option>
-                <option>Huge</option>
-                <option>Gargantuan</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Death Saves */}
-          <div className="grid grid-cols-2 gap-3 border-t pt-3 mt-3">
-            <div>
-              <label className="block text-sm font-medium">Death Save Successes</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                min="0"
-                max="3"
-                value={deathSaveSuccesses}
-                onChange={(e) => setDeathSaveSuccesses(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Death Save Failures</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                min="0"
-                max="3"
-                value={deathSaveFailures}
-                onChange={(e) => setDeathSaveFailures(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Other Info */}
-          <div className="grid grid-cols-2 gap-3 border-t pt-3 mt-3">
-            <div>
-              <label className="block text-sm font-medium">Proficiency Bonus</label>
-              <input
-                type="number"
-                className="w-full border p-1 rounded"
-                value={proficiencyBonus}
-                onChange={(e) => setProficiencyBonus(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2 mt-6">
-              <input
-                id="heroicInspiration"
-                type="checkbox"
-                className="h-4 w-4"
-                checked={heroicInspiration}
-                onChange={(e) => setHeroicInspiration(e.target.checked)}
-              />
-              <label htmlFor="heroicInspiration" className="text-sm">Heroic Inspiration</label>
-            </div>
-          </div>
-
-          {/* Skills (example) */}
-          <div className="grid grid-cols-2 gap-3 border-t pt-3 mt-3">
-            <div className="flex items-center gap-2">
-              <input
-                id="skillStealth"
-                type="checkbox"
-                className="h-4 w-4"
-                checked={skillStealth}
-                onChange={(e) => setSkillStealth(e.target.checked)}
-              />
-              <label htmlFor="skillStealth" className="text-sm">Stealth Proficiency</label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="skillPerception"
-                type="checkbox"
-                className="h-4 w-4"
-                checked={skillPerception}
-                onChange={(e) => setSkillPerception(e.target.checked)}
-              />
-              <label htmlFor="skillPerception" className="text-sm">Perception Proficiency</label>
-            </div>
-          </div>
-
-          {/* Additional Notes */}
-          <div className="border-t pt-3 mt-3">
-            <label className="block text-sm font-medium mb-1">Notes / Personality / Equipment / etc.</label>
-            <textarea
-              className="w-full border p-1 rounded"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional notes, feats, spells, coins, inventory..."
-            />
-          </div>
-
-          {/* Submit / Cancel */}
-          <div className="flex gap-2 mt-4">
-            <button
-              type="submit"
-              className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      );
-    }
-
-    /***********************************************
-     * CharacterSheetTracker
-     * Lists all sheets, allows add/edit/delete
-     ***********************************************/
-    function CharacterSheetTracker() {
-      const [characters, setCharacters] = React.useState(() => {
-        const saved = localStorage.getItem("characters");
-        return saved ? JSON.parse(saved) : [];
-      });
-      const [editingId, setEditingId] = React.useState(null);
-
-      React.useEffect(() => {
-        localStorage.setItem("characters", JSON.stringify(characters));
-      }, [characters]);
-
-      const addCharacter = () => setEditingId("new");
-      const cancelEdit = () => setEditingId(null);
-
-      const handleSave = (formData) => {
-        if (editingId === "new") {
-          // add new
-          const newChar = { id: Date.now(), ...formData };
-          setCharacters([...characters, newChar]);
-        } else {
-          // update
-          setCharacters(characters.map((c) => (c.id === editingId ? { ...c, ...formData } : c)));
-        }
-        setEditingId(null);
-      };
-
-      const handleDelete = (id) => {
-        if (!window.confirm("Are you sure you want to delete this character?")) return;
-        setCharacters(characters.filter((c) => c.id !== id));
-      };
-
-      return (
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h2 className="text-xl font-bold mb-2">Character Sheets</h2>
-          <p className="text-sm text-gray-700 mb-4">
-            Each new character has a PDF-like form. Data is stored locally.
-          </p>
-          <button
-            className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-            onClick={addCharacter}
-          >
-            Add New Character
-          </button>
-
-          {/* Show form if in "new" or editing an existing ID */}
-          {editingId && (
-            <div className="mt-4">
-              {editingId === "new" ? (
-                <CharacterSheetForm
-                  initialData={null}
-                  onSubmit={handleSave}
-                  onCancel={cancelEdit}
-                />
-              ) : (
-                <CharacterSheetForm
-                  initialData={characters.find((c) => c.id === editingId)}
-                  onSubmit={handleSave}
-                  onCancel={cancelEdit}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Stacked display of saved character sheets */}
-          <div className="space-y-4 mt-4">
-            {characters.map((char) => (
-              <div key={char.id} className="bg-white p-3 rounded shadow">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-lg">{char.characterName}</h3>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-blue-500 hover:text-blue-700"
-                      onClick={() => setEditingId(char.id)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleDelete(char.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                {/* Quick summary row. Expand as you like. */}
-                <div className="mt-2 text-sm">
-                  <p><strong>Class:</strong> {char.charClass} (Subclass: {char.subclass}), Level {char.level}</p>
-                  <p><strong>Species:</strong> {char.species}</p>
-                  <p><strong>HP:</strong> {char.currentHP}/{char.maxHP} (Temp: {char.tempHP})</p>
-                  <p><strong>AC:</strong> {char.armorClass}, <strong>Speed:</strong> {char.speed}, <strong>Size:</strong> {char.size}</p>
-                  {/* You can also show other bits here. */}
-                </div>
-              </div>
-            ))}
-            {characters.length === 0 && (
-              <p className="text-sm text-gray-500">
-                No characters yet. Click "Add New Character" above.
-              </p>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    /***********************************************
-     * Main App
-     ***********************************************/
+    // Simple App that embeds the PDF in an iframe
     function App() {
       return (
         <div className="p-4">
-          {/* Top bar with Dark Mode, Backup, etc. */}
+          {/* Top bar */}
           <div className="flex justify-between items-center mb-4">
             <DarkModeToggle />
-            <div className="flex gap-2">
-              <button
-                className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-                onClick={backupLocalStorage}
-              >
-                Backup LocalStorage
-              </button>
-              <button
-                className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-                onClick={copyForPrompt}
-              >
-                Copy for Prompt
-              </button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={(e) => restoreLocalStorage(e.target.files)}
-                className="border p-1 rounded"
-              />
-            </div>
+            <p className="text-sm">
+              This is a simple PDF embed example.
+            </p>
           </div>
 
-          {/* The CharacterSheetTracker */}
-          <CharacterSheetTracker />
+          {/* PDF Iframe */}
+          <div className="border rounded overflow-hidden" style={{ height: "90vh" }}>
+            {/* 
+              You need the PDF file to be in the same folder or at a URL the user can access.
+              For instance, if you have "DnD_2024_Character-Sheet-Fillable.pdf" in the same folder,
+              you can reference it directly:
+            */}
+            <iframe
+              src="DnD_2024_Character-Sheet-Fillable.pdf"
+              width="100%"
+              height="100%"
+              title="DnD Character Sheet PDF"
+            />
+          </div>
         </div>
       );
     }
 
-    // Render App
     ReactDOM.render(<App />, document.getElementById("root"));
   </script>
 </body>
