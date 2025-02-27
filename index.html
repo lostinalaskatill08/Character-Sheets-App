@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Character Sheets + PDF</title>
+  <title>Character Sheets + PDF (8 Slots)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Tailwind CSS (CDN) -->
@@ -43,8 +43,6 @@
       border-radius: 20px;
       border: 3px solid #f5e8c7;
     }
-
-    /* We'll keep textareas resizable. */
     textarea {
       resize: vertical;
       min-height: 80px;
@@ -137,7 +135,7 @@
     }
 
     /***********************************************
-     * Simple Character Form (short version)
+     * Simple Character Form
      ***********************************************/
     function CharacterForm(props) {
       var init = props.initialData || {};
@@ -191,15 +189,32 @@
     }
 
     /***********************************************
-     * Tracker for multiple characters
+     * 8-Slot Character Tracker
      ***********************************************/
     function CharacterTracker() {
-      var [characters, setCharacters] = React.useState(function() {
+      // We'll load from localStorage. If empty, create 8 placeholders.
+      function getInitialCharacters() {
         var saved = localStorage.getItem("characters");
-        return saved ? JSON.parse(saved) : [];
-      });
+        if (saved) {
+          return JSON.parse(saved);
+        } else {
+          // Create 8 empty "slots" by default
+          var defaults = [];
+          for (var i = 1; i <= 8; i++) {
+            defaults.push({
+              id: i,
+              charName: "Character " + i,
+              notes: ""
+            });
+          }
+          return defaults;
+        }
+      }
+
+      var [characters, setCharacters] = React.useState(getInitialCharacters);
       var [editingId, setEditingId] = React.useState(null);
 
+      // Save to localStorage whenever `characters` changes
       React.useEffect(function() {
         localStorage.setItem("characters", JSON.stringify(characters));
       }, [characters]);
@@ -210,11 +225,12 @@
 
       function saveChar(formData) {
         if (editingId === "new") {
-          // create new
-          var newChar = { id: Date.now(), ...formData };
+          // Create brand-new char with a unique ID
+          var newId = Date.now();
+          var newChar = { id: newId, ...formData };
           setCharacters(characters.concat(newChar));
         } else {
-          // update existing
+          // Update existing
           var updated = characters.map(function(c) {
             if (c.id === editingId) return { ...c, ...formData };
             return c;
@@ -232,8 +248,10 @@
 
       return (
         <div className="bg-gray-100 p-4 rounded shadow">
-          <h2 className="text-xl font-bold mb-2">Character Sheets</h2>
-          <p className="text-sm mb-4">Add / Edit / Delete stored in localStorage</p>
+          <h2 className="text-xl font-bold mb-2">8 Character Sheets</h2>
+          <p className="text-sm mb-4">
+            We start with 8 slots by default. You can edit, delete, or even add more.
+          </p>
           <button
             className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
             onClick={addChar}
@@ -260,7 +278,7 @@
             </div>
           )}
 
-          {/* List of chars */}
+          {/* Display all characters */}
           <div className="space-y-3 mt-4">
             {characters.map(function(c) {
               return (
@@ -333,9 +351,8 @@
             <div className="w-1/2 p-4">
               <div className="border rounded overflow-hidden h-full">
                 {/*
-                  Make sure you have "DnD_2024_Character-Sheet-Fillable.pdf"
-                  in the same repo/folder on GitHub. If your PDF has a different
-                  name or location, update "src" accordingly.
+                  Make sure the PDF file name/path matches exactly
+                  and that you have placed it in your repo.
                 */}
                 <iframe
                   src="DnD_2024_Character-Sheet-Fillable.pdf"
