@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>8 PDF Character Sheets</title>
+  <title>8 PDF Character Sheets (Stacked)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Tailwind CSS (CDN) -->
@@ -313,8 +313,7 @@
     }
 
     /***********************************************
-     * Main App - side-by-side layout
-     * 8 iframes each referencing the same PDF
+     * Main App - left side tracker, right side stacked PDF iframes
      ***********************************************/
     function App() {
       // We'll create an array of length 8, each referencing the same PDF file
@@ -347,21 +346,26 @@
             </div>
           </div>
 
-          {/* Body: left half = character tracker, right half = 8 PDF iframes */}
+          {/* Body: left half = character tracker, right half = 8 stacked PDF frames */}
           <div className="flex-1 flex flex-row">
             <div className="w-1/2 p-4 overflow-y-auto">
               <CharacterTracker />
             </div>
+
+            {/* Right side: stack all 8 frames vertically */}
             <div className="w-1/2 p-4 overflow-y-auto">
-              <h2 className="text-xl font-bold mb-2">8 PDF Sheets</h2>
+              <h2 className="text-xl font-bold mb-2">8 PDF Sheets (Stacked)</h2>
               <p className="text-sm mb-4">
-                Each slot has its own iframe with the same PDF. (Filling them doesn’t store data in React.)
+                Each iframe is the same PDF. Scroll down to see them all.
               </p>
-              {/* We'll do a grid of 2 columns x 4 rows, each embedding the same PDF */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-6">
                 {pdfArray.map(function(pdfSrc, idx) {
                   return (
-                    <div key={idx} className="border rounded overflow-hidden h-[400px]">
+                    <div
+                      key={idx}
+                      className="border rounded overflow-hidden"
+                      style={{ height: "600px" }}
+                    >
                       <iframe
                         src={pdfSrc}
                         width="100%"
