@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Embed Example</title>
+  <title>Character Sheets + PDF</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Tailwind CSS CDN (Warning: For production, see notes below) -->
+  <!-- Tailwind CSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- React and ReactDOM 17 from jsDelivr -->
   <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js" crossorigin></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.development.js" crossorigin></script>
 
-  <!-- Babel (in-browser) - not recommended for production -->
+  <!-- Babel (in-browser) - Not recommended for production -->
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
   <!-- D&D-inspired font -->
@@ -43,18 +43,25 @@
       border-radius: 20px;
       border: 3px solid #f5e8c7;
     }
+
+    /* We'll keep textareas resizable. */
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
   </style>
 </head>
+
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    // DarkModeToggle without optional chaining:
+    /***********************************************
+     * Dark Mode Toggle (no optional chaining)
+     ***********************************************/
     function DarkModeToggle() {
-      // Use older logic instead of optional chaining:
       var storedDark = localStorage.getItem("darkMode");
       var initialDark = (storedDark === "true");
-
       const [darkMode, setDarkMode] = React.useState(initialDark);
 
       React.useEffect(function() {
@@ -76,36 +83,274 @@
       );
     }
 
-    // Simple App that embeds the PDF in an iframe
-    function App() {
-      return (
-        <div className="p-4">
-          {/* Top bar */}
-          <div className="flex justify-between items-center mb-4">
-            <DarkModeToggle />
-            <p className="text-sm">
-              This is a simple PDF embed example.
-            </p>
-          </div>
+    /***********************************************
+     * Backup / Restore / Copy-for-Prompt
+     ***********************************************/
+    function backupLocalStorage() {
+      var data = {
+        characters: localStorage.getItem("characters"),
+        darkMode: localStorage.getItem("darkMode"),
+      };
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "character_sheets_backup.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
 
-          {/* PDF Iframe */}
-          <div className="border rounded overflow-hidden" style={{ height: "90vh" }}>
-            {/* 
-              You need the PDF file to be in the same folder or at a URL the user can access.
-              For instance, if you have "DnD_2024_Character-Sheet-Fillable.pdf" in the same folder,
-              you can reference it directly:
-            */}
-            <iframe
-              src="DnD_2024_Character-Sheet-Fillable.pdf"
-              width="100%"
-              height="100%"
-              title="DnD Character Sheet PDF"
+    function restoreLocalStorage(files) {
+      if (!files || !files.length) return;
+      var file = files[0];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = JSON.parse(e.target.result);
+          for (var key in data) {
+            if (data[key] !== null && data[key] !== undefined) {
+              localStorage.setItem(key, data[key]);
+            }
+          }
+          alert("LocalStorage restored! Please refresh the page.");
+        } catch (err) {
+          console.error(err);
+          alert("Failed to restore. Invalid JSON?");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function copyForPrompt() {
+      var raw = localStorage.getItem("characters") || "[]";
+      var characters = JSON.parse(raw);
+      var data = { characters: characters };
+      var jsonString = JSON.stringify(data, null, 2);
+      navigator.clipboard.writeText(jsonString)
+        .then(function() {
+          alert("Data copied to clipboard!");
+        })
+        .catch(function(err) {
+          console.error("Failed to copy: ", err);
+          alert("Failed to copy data to clipboard.");
+        });
+    }
+
+    /***********************************************
+     * Simple Character Form (short version)
+     ***********************************************/
+    function CharacterForm(props) {
+      var init = props.initialData || {};
+      var [charName, setCharName] = React.useState(init.charName || "");
+      var [notes, setNotes] = React.useState(init.notes || "");
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        if (!charName.trim()) {
+          alert("Character name is required.");
+          return;
+        }
+        var formData = {
+          charName: charName,
+          notes: notes,
+        };
+        props.onSubmit(formData);
+      }
+
+      return (
+        <form onSubmit={handleSubmit} className="p-3 bg-gray-50 border rounded space-y-2">
+          <div>
+            <label className="block text-sm font-medium">Name</label>
+            <input
+              className="border w-full p-1 rounded"
+              value={charName}
+              onChange={function(e){ setCharName(e.target.value); }}
+              required
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Notes</label>
+            <textarea
+              className="border w-full p-1 rounded"
+              value={notes}
+              onChange={function(e){ setNotes(e.target.value); }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800">Save</button>
+            <button
+              type="button"
+              className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              onClick={props.onCancel}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      );
+    }
+
+    /***********************************************
+     * Tracker for multiple characters
+     ***********************************************/
+    function CharacterTracker() {
+      var [characters, setCharacters] = React.useState(function() {
+        var saved = localStorage.getItem("characters");
+        return saved ? JSON.parse(saved) : [];
+      });
+      var [editingId, setEditingId] = React.useState(null);
+
+      React.useEffect(function() {
+        localStorage.setItem("characters", JSON.stringify(characters));
+      }, [characters]);
+
+      function addChar() {
+        setEditingId("new");
+      }
+
+      function saveChar(formData) {
+        if (editingId === "new") {
+          // create new
+          var newChar = { id: Date.now(), ...formData };
+          setCharacters(characters.concat(newChar));
+        } else {
+          // update existing
+          var updated = characters.map(function(c) {
+            if (c.id === editingId) return { ...c, ...formData };
+            return c;
+          });
+          setCharacters(updated);
+        }
+        setEditingId(null);
+      }
+
+      function deleteChar(id) {
+        if (!window.confirm("Delete this character?")) return;
+        var filtered = characters.filter(function(c) { return c.id !== id; });
+        setCharacters(filtered);
+      }
+
+      return (
+        <div className="bg-gray-100 p-4 rounded shadow">
+          <h2 className="text-xl font-bold mb-2">Character Sheets</h2>
+          <p className="text-sm mb-4">Add / Edit / Delete stored in localStorage</p>
+          <button
+            className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
+            onClick={addChar}
+          >
+            Add New
+          </button>
+
+          {/* If editing or new, show form */}
+          {editingId && (
+            <div className="mt-4">
+              {editingId === "new" ? (
+                <CharacterForm
+                  initialData={null}
+                  onSubmit={saveChar}
+                  onCancel={function(){ setEditingId(null); }}
+                />
+              ) : (
+                <CharacterForm
+                  initialData={characters.find(function(c){return c.id === editingId;})}
+                  onSubmit={saveChar}
+                  onCancel={function(){ setEditingId(null); }}
+                />
+              )}
+            </div>
+          )}
+
+          {/* List of chars */}
+          <div className="space-y-3 mt-4">
+            {characters.map(function(c) {
+              return (
+                <div key={c.id} className="bg-white p-2 rounded border">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold">{c.charName}</h3>
+                    <div className="flex gap-2">
+                      <button
+                        className="text-blue-500"
+                        onClick={function(){ setEditingId(c.id); }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-red-500"
+                        onClick={function(){ deleteChar(c.id); }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  {c.notes && <p className="text-sm mt-1">{c.notes}</p>}
+                </div>
+              );
+            })}
+            {characters.length === 0 && (
+              <p className="text-sm text-gray-500">No characters yet. Add one above!</p>
+            )}
           </div>
         </div>
       );
     }
 
+    /***********************************************
+     * Main App - side-by-side layout
+     ***********************************************/
+    function App() {
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* Top bar */}
+          <div className="p-4 flex justify-between items-center">
+            <DarkModeToggle />
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
+                onClick={backupLocalStorage}
+              >
+                Backup
+              </button>
+              <button
+                className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
+                onClick={copyForPrompt}
+              >
+                Copy JSON
+              </button>
+              <input
+                type="file"
+                accept=".json"
+                onChange={function(e){ restoreLocalStorage(e.target.files); }}
+                className="border p-1 rounded"
+              />
+            </div>
+          </div>
+
+          {/* Body: left half = character tracker, right half = PDF */}
+          <div className="flex-1 flex flex-row">
+            <div className="w-1/2 p-4 overflow-y-auto">
+              <CharacterTracker />
+            </div>
+            <div className="w-1/2 p-4">
+              <div className="border rounded overflow-hidden h-full">
+                {/*
+                  Make sure you have "DnD_2024_Character-Sheet-Fillable.pdf"
+                  in the same repo/folder on GitHub. If your PDF has a different
+                  name or location, update "src" accordingly.
+                */}
+                <iframe
+                  src="DnD_2024_Character-Sheet-Fillable.pdf"
+                  width="100%"
+                  height="100%"
+                  title="DnD Character Sheet PDF"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render the App
     ReactDOM.render(<App />, document.getElementById("root"));
   </script>
 </body>
