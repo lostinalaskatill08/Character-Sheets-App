@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>8 Character Sheets + 8 JPGs</title>
+  <title>8 PDF Character Sheets</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Tailwind CSS (CDN) -->
@@ -314,22 +314,11 @@
 
     /***********************************************
      * Main App - side-by-side layout
-     * 8 images on the right for 8 "sheet" JPGs
+     * 8 iframes each referencing the same PDF
      ***********************************************/
     function App() {
-      // We'll store an array of 8 image paths. 
-      // Make sure these exist in your repo. 
-      // If you only have one image, you could reference the same file repeatedly.
-      var sheetImages = [
-        "Sheet1.jpg",
-        "Sheet2.jpg",
-        "Sheet3.jpg",
-        "Sheet4.jpg",
-        "Sheet5.jpg",
-        "Sheet6.jpg",
-        "Sheet7.jpg",
-        "Sheet8.jpg",
-      ];
+      // We'll create an array of length 8, each referencing the same PDF file
+      var pdfArray = new Array(8).fill("DnD_2024_Character-Sheet-Fillable.pdf");
 
       return (
         <div className="min-h-screen flex flex-col">
@@ -358,25 +347,26 @@
             </div>
           </div>
 
-          {/* Body: left half = character tracker, right half = 8 JPGs */}
+          {/* Body: left half = character tracker, right half = 8 PDF iframes */}
           <div className="flex-1 flex flex-row">
             <div className="w-1/2 p-4 overflow-y-auto">
               <CharacterTracker />
             </div>
             <div className="w-1/2 p-4 overflow-y-auto">
-              <h2 className="text-xl font-bold mb-2">8 JPG Character Sheets</h2>
+              <h2 className="text-xl font-bold mb-2">8 PDF Sheets</h2>
               <p className="text-sm mb-4">
-                Each slot has its own JPG (upload them in your repo).
+                Each slot has its own iframe with the same PDF. (Filling them doesn’t store data in React.)
               </p>
-              {/* Display each image in a grid (2 columns, 4 rows) */}
+              {/* We'll do a grid of 2 columns x 4 rows, each embedding the same PDF */}
               <div className="grid grid-cols-2 gap-4">
-                {sheetImages.map(function(imgPath, idx) {
+                {pdfArray.map(function(pdfSrc, idx) {
                   return (
-                    <div key={idx} className="border rounded overflow-hidden">
-                      <img
-                        src={imgPath}
-                        alt={"Character Sheet " + (idx + 1)}
-                        className="w-full h-auto"
+                    <div key={idx} className="border rounded overflow-hidden h-[400px]">
+                      <iframe
+                        src={pdfSrc}
+                        width="100%"
+                        height="100%"
+                        title={"PDF " + (idx + 1)}
                       />
                     </div>
                   );
