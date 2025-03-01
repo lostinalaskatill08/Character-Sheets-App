@@ -4,28 +4,17 @@
   <meta charset="UTF-8" />
   <title>Character Sheets + PDF (8 Slots)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Tailwind CSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- React and ReactDOM 17 from jsDelivr -->
   <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js" crossorigin></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.development.js" crossorigin></script>
-
-  <!-- Babel (in-browser) - Not recommended for production -->
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-
-  <!-- D&D-inspired font -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet" />
-
   <style>
     body {
       font-family: 'Cinzel', serif;
       background: #f4e4bc url("https://www.transparenttextures.com/patterns/aged-paper.png") repeat;
       background-blend-mode: overlay;
       color: #4a2c0f;
-      margin: 0;
-      padding: 0;
     }
     .dark {
       background-color: #1a1a1a;
@@ -43,143 +32,241 @@
       border-radius: 20px;
       border: 3px solid #f5e8c7;
     }
+    .app-container {
+      background-color: #1a222e;
+      border-radius: 0.5rem;
+      color: #f4e4bc;
+    }
+    input, select, textarea {
+      font-family: 'Cinzel', serif;
+      color: #000000 !important;
+      background-color: #f9efd4 !important;
+      border-color: #4a3f35 !important;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #666666;
+    }
+    .btn-dnd {
+      background-color: #8B0000;
+      color: #f4e4bc;
+      font-family: 'Cinzel', serif;
+      font-weight: bold;
+      border: 1px solid #4a3f35;
+      transition: all 0.3s ease;
+    }
+    .btn-dnd:hover {
+      background-color: #6d0101;
+    }
+    .dnd-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+    }
+    .dnd-table th {
+      background-color: #2c1a0f;
+      color: #f4e4bc;
+      font-weight: bold;
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #4a3f35;
+    }
+    .dnd-table td {
+      padding: 8px;
+      border: 1px solid #4a3f35;
+      background-color: #1e2a38;
+    }
+    .dnd-section-title {
+      border-bottom: 2px solid #8B0000;
+      color: #f4e4bc;
+      font-weight: bold;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.25rem;
+    }
+    .character-card {
+      background: #1e2a38;
+      border: 1px solid #4a3f35;
+      color: #f4e4bc;
+      transition: all 0.3s ease;
+    }
+    .character-card:hover {
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    }
     textarea {
       resize: vertical;
       min-height: 80px;
     }
+    .pdf-container {
+      background: url("https://www.transparenttextures.com/patterns/parchment.png") repeat;
+      background-color: #f9efd4;
+      border: 2px solid #8B4513;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
   </style>
 </head>
-
-<body>
-  <div id="root"></div>
-
+<body class="text-gray-800">
+  <div id="root" class="p-4"></div>
   <script type="text/babel">
-    /***********************************************
-     * Dark Mode Toggle (no optional chaining)
-     ***********************************************/
+    /** Dark Mode Toggle */
     function DarkModeToggle() {
-      var storedDark = localStorage.getItem("darkMode");
-      var initialDark = (storedDark === "true");
-      const [darkMode, setDarkMode] = React.useState(initialDark);
-
-      React.useEffect(function() {
-        if (darkMode) {
-          document.body.classList.add("dark");
-        } else {
-          document.body.classList.remove("dark");
-        }
+      const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem("darkMode") === "true");
+      
+      React.useEffect(() => {
+        if (darkMode) document.body.classList.add("dark");
+        else document.body.classList.remove("dark");
         localStorage.setItem("darkMode", darkMode);
       }, [darkMode]);
-
+      
       return (
-        <button
-          className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-          onClick={function() { setDarkMode(!darkMode); }}
-        >
+        <button className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800" onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
       );
     }
 
-    /***********************************************
-     * Backup / Restore / Copy-for-Prompt
-     ***********************************************/
+    /** Backup Local Storage */
     function backupLocalStorage() {
-      var data = {
+      const data = {
         characters: localStorage.getItem("characters"),
         darkMode: localStorage.getItem("darkMode"),
       };
-      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
       a.href = url;
       a.download = "character_sheets_backup.json";
       a.click();
       URL.revokeObjectURL(url);
+      
+      alert("Backup created successfully!");
     }
 
-    function restoreLocalStorage(files) {
-      if (!files || !files.length) return;
-      var file = files[0];
-      var reader = new FileReader();
-      reader.onload = function(e) {
+    /** Restore Local Storage */
+    function restoreLocalStorage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
         try {
-          var data = JSON.parse(e.target.result);
-          for (var key in data) {
+          const data = JSON.parse(e.target.result);
+          for (const key in data) {
             if (data[key] !== null && data[key] !== undefined) {
               localStorage.setItem(key, data[key]);
             }
           }
-          alert("LocalStorage restored! Please refresh the page.");
+          alert("Data restored successfully. Please refresh the page to see your characters.");
         } catch (err) {
           console.error(err);
-          alert("Failed to restore. Invalid JSON?");
+          alert("Failed to restore. Invalid backup file.");
         }
       };
       reader.readAsText(file);
     }
 
+    /** Copy JSON for Prompt */
     function copyForPrompt() {
-      var raw = localStorage.getItem("characters") || "[]";
-      var characters = JSON.parse(raw);
-      var data = { characters: characters };
-      var jsonString = JSON.stringify(data, null, 2);
+      const raw = localStorage.getItem("characters") || "[]";
+      const characters = JSON.parse(raw);
+      const data = { characters: characters };
+      const jsonString = JSON.stringify(data, null, 2);
+      
       navigator.clipboard.writeText(jsonString)
-        .then(function() {
-          alert("Data copied to clipboard!");
+        .then(() => {
+          alert("Character data copied to clipboard!");
         })
-        .catch(function(err) {
+        .catch((err) => {
           console.error("Failed to copy: ", err);
           alert("Failed to copy data to clipboard.");
         });
     }
 
-    /***********************************************
-     * Simple Character Form
-     ***********************************************/
-    function CharacterForm(props) {
-      var init = props.initialData || {};
-      var [charName, setCharName] = React.useState(init.charName || "");
-      var [notes, setNotes] = React.useState(init.notes || "");
+    /** Character Form Component */
+    function CharacterForm({ initialData, onSubmit, onCancel }) {
+      const init = initialData || {};
+      const [charName, setCharName] = React.useState(init.charName || "");
+      const [charClass, setCharClass] = React.useState(init.charClass || "");
+      const [charLevel, setCharLevel] = React.useState(init.charLevel || "");
+      const [notes, setNotes] = React.useState(init.notes || "");
 
-      function handleSubmit(e) {
+      const handleSubmit = (e) => {
         e.preventDefault();
         if (!charName.trim()) {
           alert("Character name is required.");
           return;
         }
-        var formData = {
-          charName: charName,
-          notes: notes,
+        
+        const formData = {
+          charName: charName.trim(),
+          charClass: charClass.trim(),
+          charLevel: charLevel.trim(),
+          notes: notes.trim(),
         };
-        props.onSubmit(formData);
-      }
+        
+        onSubmit(formData);
+      };
 
       return (
-        <form onSubmit={handleSubmit} className="p-3 bg-gray-50 border rounded space-y-2">
+        <form onSubmit={handleSubmit} className="p-4 rounded-lg bg-gray-800 border border-amber-900 space-y-3">
+          <h3 className="dnd-section-title text-lg">
+            {initialData ? `Edit ${initialData.charName}` : "Create New Character"}
+          </h3>
+          
           <div>
-            <label className="block text-sm font-medium">Name</label>
+            <label className="block text-sm font-medium mb-1">Character Name</label>
             <input
-              className="border w-full p-1 rounded"
+              className="border w-full p-2 rounded"
               value={charName}
-              onChange={function(e){ setCharName(e.target.value); }}
+              onChange={(e) => setCharName(e.target.value)}
+              placeholder="Enter character name"
               required
             />
           </div>
+          
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Class</label>
+              <input
+                className="border w-full p-2 rounded"
+                value={charClass}
+                onChange={(e) => setCharClass(e.target.value)}
+                placeholder="Fighter, Wizard, etc."
+              />
+            </div>
+            
+            <div className="w-24">
+              <label className="block text-sm font-medium mb-1">Level</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                className="border w-full p-2 rounded"
+                value={charLevel}
+                onChange={(e) => setCharLevel(e.target.value)}
+                placeholder="1-20"
+              />
+            </div>
+          </div>
+          
           <div>
-            <label className="block text-sm font-medium">Notes</label>
+            <label className="block text-sm font-medium mb-1">Notes</label>
             <textarea
-              className="border w-full p-1 rounded"
+              className="border w-full p-2 rounded"
               value={notes}
-              onChange={function(e){ setNotes(e.target.value); }}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Character background, abilities, items, etc."
+              rows="4"
             />
           </div>
-          <div className="flex gap-2">
-            <button className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800">Save</button>
+          
+          <div className="flex gap-2 pt-2">
+            <button type="submit" className="px-3 py-2 btn-dnd rounded">
+              {initialData ? "Update Character" : "Save Character"}
+            </button>
             <button
               type="button"
-              className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-              onClick={props.onCancel}
+              className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              onClick={onCancel}
             >
               Cancel
             </button>
@@ -188,172 +275,214 @@
       );
     }
 
-    /***********************************************
-     * 8-Slot Character Tracker
-     ***********************************************/
+    /** Character Tracker Component */
     function CharacterTracker() {
-      // We'll load from localStorage. If empty, create 8 placeholders.
-      function getInitialCharacters() {
-        var saved = localStorage.getItem("characters");
+      // Get characters from localStorage (or create 8 placeholders)
+      const [characters, setCharacters] = React.useState(() => {
+        const saved = localStorage.getItem("characters");
         if (saved) {
           return JSON.parse(saved);
         } else {
-          // Create 8 empty "slots" by default
-          var defaults = [];
-          for (var i = 1; i <= 8; i++) {
+          // Create 8 empty slots
+          const defaults = [];
+          for (let i = 1; i <= 8; i++) {
             defaults.push({
               id: i,
-              charName: "Character " + i,
+              charName: `Character ${i}`,
+              charClass: "",
+              charLevel: "",
               notes: ""
             });
           }
           return defaults;
         }
-      }
+      });
+      
+      const [editingId, setEditingId] = React.useState(null);
+      const [selectedCharacter, setSelectedCharacter] = React.useState(null);
 
-      var [characters, setCharacters] = React.useState(getInitialCharacters);
-      var [editingId, setEditingId] = React.useState(null);
-
-      // Save to localStorage whenever `characters` changes
-      React.useEffect(function() {
+      // Save to localStorage whenever characters change
+      React.useEffect(() => {
         localStorage.setItem("characters", JSON.stringify(characters));
       }, [characters]);
 
-      function addChar() {
+      const addCharacter = () => {
         setEditingId("new");
-      }
+      };
 
-      function saveChar(formData) {
+      const editCharacter = (id) => {
+        setEditingId(id);
+      };
+
+      const saveCharacter = (formData) => {
         if (editingId === "new") {
-          // Create brand-new char with a unique ID
-          var newId = Date.now();
-          var newChar = { id: newId, ...formData };
-          setCharacters(characters.concat(newChar));
+          // Create new character with unique ID
+          const newId = Date.now();
+          const newChar = { id: newId, ...formData };
+          setCharacters([...characters, newChar]);
         } else {
-          // Update existing
-          var updated = characters.map(function(c) {
-            if (c.id === editingId) return { ...c, ...formData };
-            return c;
-          });
-          setCharacters(updated);
+          // Update existing character
+          setCharacters(characters.map(c => 
+            c.id === editingId ? { ...c, ...formData } : c
+          ));
         }
         setEditingId(null);
-      }
+      };
 
-      function deleteChar(id) {
-        if (!window.confirm("Delete this character?")) return;
-        var filtered = characters.filter(function(c) { return c.id !== id; });
-        setCharacters(filtered);
-      }
+      const deleteCharacter = (id) => {
+        if (!window.confirm(`Are you sure you want to delete this character?`)) return;
+        
+        setCharacters(characters.filter(c => c.id !== id));
+        // If we're deleting the selected character, deselect it
+        if (selectedCharacter && selectedCharacter.id === id) {
+          setSelectedCharacter(null);
+        }
+      };
+
+      const viewCharacter = (character) => {
+        setSelectedCharacter(character);
+      };
+
+      const resetCharacters = () => {
+        if (!window.confirm("Are you sure you want to reset ALL characters? This cannot be undone!")) return;
+        
+        // Create 8 empty slots
+        const defaults = [];
+        for (let i = 1; i <= 8; i++) {
+          defaults.push({
+            id: i,
+            charName: `Character ${i}`,
+            charClass: "",
+            charLevel: "",
+            notes: ""
+          });
+        }
+        setCharacters(defaults);
+        setSelectedCharacter(null);
+      };
+
+      // Sort characters alphabetically by name
+      const sortedCharacters = [...characters].sort((a, b) => 
+        a.charName.localeCompare(b.charName)
+      );
 
       return (
-        <div className="bg-gray-100 p-4 rounded shadow">
-          <h2 className="text-xl font-bold mb-2">8 Character Sheets</h2>
-          <p className="text-sm mb-4">
-            We start with 8 slots by default. You can edit, delete, or even add more.
-          </p>
-          <button
-            className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-            onClick={addChar}
-          >
-            Add New
-          </button>
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-amber-800 dark:text-amber-400">Character Sheets</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={addCharacter}
+                className="px-3 py-1 btn-dnd rounded"
+              >
+                Add Character
+              </button>
+              <button
+                onClick={resetCharacters}
+                className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Reset All
+              </button>
+            </div>
+          </div>
 
-          {/* If editing or new, show form */}
+          {/* Help text */}
+          <div className="mb-4 bg-yellow-50 dark:bg-gray-700 p-3 rounded-lg border border-amber-300 dark:border-gray-600">
+            <h3 className="text-amber-800 dark:text-amber-400 font-bold mb-1">Quick Guide:</h3>
+            <ol className="list-decimal pl-5 text-sm text-amber-900 dark:text-amber-200">
+              <li className="mb-1">Click "Add Character" to create a new character</li>
+              <li className="mb-1">Click "View" to see character details and PDF</li>
+              <li className="mb-1">Click "Edit" to modify character information</li>
+              <li className="mb-1">The PDF viewer allows you to fill out the official character sheet</li>
+            </ol>
+          </div>
+
+          {/* Editing form (appears when adding or editing) */}
           {editingId && (
-            <div className="mt-4">
-              {editingId === "new" ? (
-                <CharacterForm
-                  initialData={null}
-                  onSubmit={saveChar}
-                  onCancel={function(){ setEditingId(null); }}
-                />
-              ) : (
-                <CharacterForm
-                  initialData={characters.find(function(c){return c.id === editingId;})}
-                  onSubmit={saveChar}
-                  onCancel={function(){ setEditingId(null); }}
-                />
-              )}
+            <div className="mb-4">
+              <CharacterForm
+                initialData={editingId === "new" ? null : characters.find(c => c.id === editingId)}
+                onSubmit={saveCharacter}
+                onCancel={() => setEditingId(null)}
+              />
             </div>
           )}
 
-          {/* Display all characters */}
-          <div className="space-y-3 mt-4">
-            {characters.map(function(c) {
-              return (
-                <div key={c.id} className="bg-white p-2 rounded border">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold">{c.charName}</h3>
-                    <div className="flex gap-2">
+          {/* Character list */}
+          <div className="overflow-y-auto mb-4 flex-grow">
+            <table className="dnd-table">
+              <thead>
+                <tr>
+                  <th>Character</th>
+                  <th>Class</th>
+                  <th>Level</th>
+                  <th className="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedCharacters.map(character => (
+                  <tr key={character.id}>
+                    <td className="text-amber-400 font-bold">{character.charName}</td>
+                    <td>{character.charClass || "—"}</td>
+                    <td>{character.charLevel || "—"}</td>
+                    <td className="text-center">
                       <button
-                        className="text-blue-500"
-                        onClick={function(){ setEditingId(c.id); }}
+                        onClick={() => viewCharacter(character)}
+                        className="px-2 py-1 btn-dnd rounded text-xs mr-1"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => editCharacter(character.id)}
+                        className="px-2 py-1 bg-blue-700 text-white rounded text-xs mr-1 hover:bg-blue-800"
                       >
                         Edit
                       </button>
                       <button
-                        className="text-red-500"
-                        onClick={function(){ deleteChar(c.id); }}
+                        onClick={() => deleteCharacter(character.id)}
+                        className="px-2 py-1 bg-red-700 text-white rounded text-xs hover:bg-red-800"
                       >
                         Delete
                       </button>
-                    </div>
-                  </div>
-                  {c.notes && <p className="text-sm mt-1">{c.notes}</p>}
+                    </td>
+                  </tr>
+                ))}
+                {characters.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="text-center py-4 text-amber-400">
+                      No characters found. Add one to get started!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Selected character detail view with PDF */}
+          {selectedCharacter && (
+            <div className="bg-gray-800 rounded-lg p-4 border border-amber-900">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-amber-400">
+                  {selectedCharacter.charName}
+                  {selectedCharacter.charClass && ` - ${selectedCharacter.charClass}`}
+                  {selectedCharacter.charLevel && ` (Level ${selectedCharacter.charLevel})`}
+                </h3>
+                <button
+                  onClick={() => setSelectedCharacter(null)}
+                  className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+              
+              {selectedCharacter.notes && (
+                <div className="mb-4 bg-gray-700 p-3 rounded">
+                  <h4 className="font-bold text-amber-400 mb-1">Notes:</h4>
+                  <p className="whitespace-pre-wrap text-sm">{selectedCharacter.notes}</p>
                 </div>
-              );
-            })}
-            {characters.length === 0 && (
-              <p className="text-sm text-gray-500">No characters yet. Add one above!</p>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    /***********************************************
-     * Main App - side-by-side layout
-     ***********************************************/
-    function App() {
-      return (
-        <div className="min-h-screen flex flex-col">
-          {/* Top bar */}
-          <div className="p-4 flex justify-between items-center">
-            <DarkModeToggle />
-            <div className="flex gap-2">
-              <button
-                className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-                onClick={backupLocalStorage}
-              >
-                Backup
-              </button>
-              <button
-                className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800"
-                onClick={copyForPrompt}
-              >
-                Copy JSON
-              </button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={function(e){ restoreLocalStorage(e.target.files); }}
-                className="border p-1 rounded"
-              />
-            </div>
-          </div>
-
-          {/* Body: left half = character tracker, right half = PDF */}
-          <div className="flex-1 flex flex-row">
-            <div className="w-1/2 p-4 overflow-y-auto">
-              <CharacterTracker />
-            </div>
-            <div className="w-1/2 p-4">
-              <div className="border rounded overflow-hidden h-full">
-                {/*
-                  Make sure the PDF file name/path matches exactly
-                  and that you have placed it in your repo.
-                */}
+              )}
+              
+              <div className="pdf-container h-96 overflow-hidden">
                 <iframe
                   src="DnD_2024_Character-Sheet-Fillable.pdf"
                   width="100%"
@@ -362,6 +491,34 @@
                 />
               </div>
             </div>
+          )}
+        </div>
+      );
+    }
+
+    /** Main Application */
+    function App() {
+      return (
+        <div className="container mx-auto">
+          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+            <DarkModeToggle />
+            <div className="flex flex-wrap gap-2">
+              <button className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800" onClick={backupLocalStorage}>
+                Backup Local Storage
+              </button>
+              <label className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800 cursor-pointer">
+                Restore Data
+                <input type="file" accept=".json" onChange={restoreLocalStorage} className="hidden" />
+              </label>
+              <button className="px-3 py-1 bg-amber-700 text-white rounded hover:bg-amber-800" onClick={copyForPrompt}>
+                Copy for Prompt
+              </button>
+            </div>
+          </div>
+          
+          <div className="app-container p-4 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-2">D&D Character Manager</h2>
+            <CharacterTracker />
           </div>
         </div>
       );
