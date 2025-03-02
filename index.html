@@ -2,28 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>D&D Player Tracker</title>
+  <title>D&D Character Sheet</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
   <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js" crossorigin></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel for in-browser JSX transform -->
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet" />
+
   <style>
     body {
       font-family: 'Cinzel', serif;
+      /* Aged paper background */
       background: #f4e4bc url("https://www.transparenttextures.com/patterns/aged-paper.png") repeat;
       background-blend-mode: overlay;
       color: #4a2c0f;
     }
+    /* Dark mode body */
     .dark {
       background-color: #1a1a1a;
       color: #fafafa;
       background-blend-mode: normal;
     }
-    .app-container {
-      background-color: #1a222e;
+    /* Basic theming for container and elements */
+    .sheet-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem;
+      background-color: #1a222e; /* Dark panel behind fields */
       border-radius: 0.5rem;
       color: #f4e4bc;
     }
@@ -47,36 +58,6 @@
     .btn-dnd:hover {
       background-color: #6d0101;
     }
-    .character-card, .enemy-card {
-      background-color: #1e2a38;
-      color: #f4e4bc;
-      border: 1px solid #4a3f35;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    }
-    .health-bar {
-      background-color: #2c1a0f;
-      height: 1rem;
-      border-radius: 0.25rem;
-      overflow: hidden;
-    }
-    .health-bar-fill {
-      height: 100%;
-      background-color: #8B0000;
-      transition: width 0.3s ease;
-    }
-    .status-tag {
-      background-color: #442200;
-      color: #f4e4bc;
-      border-radius: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      margin-right: 0.25rem;
-      margin-bottom: 0.25rem;
-      display: inline-block;
-    }
-    .collapsible-content {
-      overflow: hidden;
-      transition: max-height 0.3s ease-in-out;
-    }
     ::-webkit-scrollbar {
       width: 12px;
     }
@@ -90,622 +71,665 @@
     }
   </style>
 </head>
-<body class="text-gray-800">
-  <div id="root" class="p-4"></div>
+<body>
+<div id="root"></div>
 
-  <script type="text/babel">
-    /** LocalStorage Backup/Restore */
-    function backupLocalStorage() {
-      const data = {
-        characters: localStorage.getItem("characters"),
-        enemies: localStorage.getItem("enemies"),
-        statRows: localStorage.getItem("statRows"),
-        mapImage: localStorage.getItem("mapImage"),
-        dotPositions: localStorage.getItem("dotPositions"),
-        collapsedCharacters: localStorage.getItem("collapsedCharacters"),
-        collapsedEnemies: localStorage.getItem("collapsedEnemies"),
-        darkMode: localStorage.getItem("darkMode"),
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "dnd_tracker_backup.json";
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+<script type="text/babel">
 
-    function restoreLocalStorage(event) {
-      const files = event.target.files;
-      if (!files || !files.length) return;
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          for (const key in data) {
-            if (data[key] !== null && data[key] !== undefined) {
-              localStorage.setItem(key, data[key]);
-            }
-          }
-          alert("LocalStorage restored. Please refresh the page.");
-        } catch (err) {
-          console.error(err);
-          alert("Failed to restore. Invalid JSON?");
-        }
-      };
-      reader.readAsText(file);
-    }
+/** ========== LOCALSTORAGE BACKUP / RESTORE ========== */
+function backupLocalStorage() {
+  // We'll backup the entire localStorage. This includes the characterSheet data
+  const data = { characterSheet: localStorage.getItem("characterSheet"), darkMode: localStorage.getItem("darkMode") };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "character_sheet_backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-    /** Copy for Prompt */
-    function copyForPrompt() {
-      const content = document.getElementById("root").innerText;
-      navigator.clipboard.writeText(content).then(() => {
-        alert("Content copied to clipboard!");
-      }).catch(() => {
-        alert("Failed to copy content.");
-      });
-    }
-
-    /** Hook for Expand/Collapse */
-    function useCollapseState(storageKey) {
-      const [collapseState, setCollapseState] = React.useState(() => {
-        const saved = localStorage.getItem(storageKey);
-        return saved ? JSON.parse(saved) : {};
-      });
-
-      function toggleCollapse(id) {
-        setCollapseState((prev) => {
-          const newVal = { ...prev, [id]: !prev[id] };
-          localStorage.setItem(storageKey, JSON.stringify(newVal));
-          return newVal;
-        });
+function restoreLocalStorage(event) {
+  const files = event.target.files;
+  if (!files || !files.length) return;
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // If the JSON includes "characterSheet" or "darkMode", restore them
+      if (data.characterSheet !== undefined) {
+        localStorage.setItem("characterSheet", data.characterSheet);
       }
-
-      return [collapseState, toggleCollapse];
+      if (data.darkMode !== undefined) {
+        localStorage.setItem("darkMode", data.darkMode);
+      }
+      alert("LocalStorage restored. Please refresh the page.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to restore. Invalid JSON?");
     }
+  };
+  reader.readAsText(file);
+}
 
-    /** Dark Mode Toggle */
-    function DarkModeToggle() {
-      const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem("darkMode") === "true");
+/** ========== DARK MODE TOGGLE ========== */
+function DarkModeToggle() {
+  const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem("darkMode") === "true");
 
-      React.useEffect(() => {
-        if (darkMode) document.body.classList.add("dark");
-        else document.body.classList.remove("dark");
-        localStorage.setItem("darkMode", darkMode);
-      }, [darkMode]);
+  React.useEffect(() => {
+    if (darkMode) document.body.classList.add("dark");
+    else document.body.classList.remove("dark");
+    localStorage.setItem("darkMode", darkMode);
+  }, [darkMode]);
 
-      return (
-        <button className="px-3 py-1 btn-dnd rounded" onClick={() => setDarkMode(!darkMode)}>
-          {darkMode ? "Light Mode" : "Dark Mode"}
+  return (
+    <button className="px-3 py-1 btn-dnd rounded" onClick={() => setDarkMode(!darkMode)}>
+      {darkMode ? "Light Mode" : "Dark Mode"}
+    </button>
+  );
+}
+
+/** ========== MAIN CHARACTER SHEET COMPONENT ========== */
+function CharacterSheet() {
+  // A single state object for the entire character sheet
+  const [sheetData, setSheetData] = React.useState(() => {
+    // Load from local storage or default
+    const saved = localStorage.getItem("characterSheet");
+    if (saved) return JSON.parse(saved);
+    return {
+      characterName: "",
+      class: "",
+      armor: "",
+      hitPoints: "",
+      proficiencyBonus: "",
+      heroicInspiration: "",
+      wisdom: "",
+      charisma: "",
+      dexterity: "",
+      strength: "",
+      constitution: "",
+      intelligence: "",
+      initiative: "",
+      speed: "",
+      size: "",
+      passivePerception: "",
+      hitDice: "",
+      deathSaves: "",
+      tools: "",
+      weapons: "",
+      armorTraining: "",
+      background: "",
+      languages: "",  // New field for languages
+      // Skills
+      animalHandling: "",
+      insight: "",
+      medicine: "",
+      perception: "",
+      survival: "",
+      deception: "",
+      intimidation: "",
+      performance: "",
+      persuasion: "",
+      acrobatics: "",
+      sleightOfHand: "",
+      stealth: "",
+      athletics: "",
+      arcana: "",
+      history: "",
+      investigation: "",
+      nature: "",
+      religion: "",
+      // Additional
+      classLevel: "",
+      shield: "",
+      successes: "",
+      equipment: "",
+      feats: "",
+      classFeatures: "",
+      speciesTraits: "",
+      shields: "",
+      castingTime: "",
+      concentrationRitual: "",
+      currency: ""
+    };
+  });
+
+  // Whenever sheetData changes, save to local storage
+  React.useEffect(() => {
+    localStorage.setItem("characterSheet", JSON.stringify(sheetData));
+  }, [sheetData]);
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setSheetData((prev) => ({ ...prev, [name]: value }));
+  }
+
+  // "Copy for Prompt" - creates a text summary of the entire sheet
+  function copyForPrompt() {
+    const textSummary = `
+D&D Character Sheet
+
+Character Name: ${sheetData.characterName}
+Class: ${sheetData.class}
+Armor: ${sheetData.armor}
+Hit Points: ${sheetData.hitPoints}
+Proficiency Bonus: ${sheetData.proficiencyBonus}
+Heroic Inspiration: ${sheetData.heroicInspiration}
+Death Saves: ${sheetData.deathSaves}
+
+STR: ${sheetData.strength}
+DEX: ${sheetData.dexterity}
+CON: ${sheetData.constitution}
+INT: ${sheetData.intelligence}
+WIS: ${sheetData.wisdom}
+CHA: ${sheetData.charisma}
+
+Initiative: ${sheetData.initiative}
+Speed: ${sheetData.speed}
+Size: ${sheetData.size}
+Passive Perception: ${sheetData.passivePerception}
+Hit Dice: ${sheetData.hitDice}
+
+Tools: ${sheetData.tools}
+Weapons: ${sheetData.weapons}
+Armor Training: ${sheetData.armorTraining}
+Background: ${sheetData.background}
+Languages: ${sheetData.languages}
+
+Skills:
+  - Animal Handling: ${sheetData.animalHandling}
+  - Insight: ${sheetData.insight}
+  - Medicine: ${sheetData.medicine}
+  - Perception: ${sheetData.perception}
+  - Survival: ${sheetData.survival}
+  - Deception: ${sheetData.deception}
+  - Intimidation: ${sheetData.intimidation}
+  - Performance: ${sheetData.performance}
+  - Persuasion: ${sheetData.persuasion}
+  - Acrobatics: ${sheetData.acrobatics}
+  - Sleight of Hand: ${sheetData.sleightOfHand}
+  - Stealth: ${sheetData.stealth}
+  - Athletics: ${sheetData.athletics}
+  - Arcana: ${sheetData.arcana}
+  - History: ${sheetData.history}
+  - Investigation: ${sheetData.investigation}
+  - Nature: ${sheetData.nature}
+  - Religion: ${sheetData.religion}
+
+Class Level & Temp Spent: ${sheetData.classLevel}
+Shield: ${sheetData.shield}
+Successes: ${sheetData.successes}
+Equipment, Training & Proficiencies: ${sheetData.equipment}
+Feats: ${sheetData.feats}
+Class Features & Weapons/Damage Cantrips: ${sheetData.classFeatures}
+Species Traits: ${sheetData.speciesTraits}
+Shields (Light/Medium/Heavy): ${sheetData.shields}
+Casting Time: ${sheetData.castingTime}
+Concentration/Ritual & Materials: ${sheetData.concentrationRitual}
+Currency: ${sheetData.currency}
+`.trim();
+
+    navigator.clipboard.writeText(textSummary)
+      .then(() => alert("Character sheet copied to clipboard!"))
+      .catch(() => alert("Failed to copy."));
+  }
+
+  return (
+    <div className="sheet-container">
+      <h1 className="text-2xl font-bold mb-4 text-center text-amber-400">D&D Character Sheet</h1>
+      {/* Buttons row */}
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
+        <button className="px-3 py-1 btn-dnd rounded" onClick={copyForPrompt}>
+          Copy for Prompt
         </button>
-      );
-    }
+      </div>
 
-    /** CharacterCard, EnemyCard, StatsSection, MapSection, PartyImages, CopyButton, ClassesSection, RacesSection, MonsterCreatureList **/
-    /* … (The components from the previous code remain unchanged.) */
-    /* For brevity, please refer to the previous fixed code above for these components. */
-
-    /** New: CharacterSheet Component */
-    function CharacterSheet() {
-      const [sheetData, setSheetData] = React.useState({
-        characterName: "",
-        armor: "",
-        class: "",
-        deathSaves: "",
-        hitPoints: "",
-        proficiencyBonus: "",
-        heroicInspiration: "",
-        wisdom: "",
-        charisma: "",
-        dexterity: "",
-        strength: "",
-        constitution: "",
-        intelligence: "",
-        initiative: "",
-        speed: "",
-        size: "",
-        passivePerception: "",
-        hitDice: "",
-        tools: "",
-        weapons: "",
-        training: "",
-        background: "",
-        animalHandling: "",
-        insight: "",
-        medicine: "",
-        perception: "",
-        survival: "",
-        deception: "",
-        intimidation: "",
-        performance: "",
-        persuasion: "",
-        acrobatics: "",
-        sleightOfHand: "",
-        stealth: "",
-        athletics: "",
-        arcana: "",
-        history: "",
-        investigation: "",
-        nature: "",
-        religion: "",
-        classLevel: "",
-        tempSpent: "",
-        shield: "",
-        successes: "",
-        equipment: "",
-        feats: "",
-        classFeatures: "",
-        speciesTraits: "",
-        shields: "",
-        castingTime: "",
-        concentrationRitual: "",
-        currency: ""
-      });
-
-      function handleChange(e) {
-        const { name, value } = e.target;
-        setSheetData({ ...sheetData, [name]: value });
-      }
-
-      return (
-        <div className="character-card p-4 rounded-lg mb-4">
-          <h2 className="text-xl font-bold text-amber-400 mb-4">Character Sheet</h2>
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Character Name</label>
-              <input type="text" name="characterName" value={sheetData.characterName} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Class</label>
-              <input type="text" name="class" value={sheetData.class} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Armor</label>
-              <input type="text" name="armor" value={sheetData.armor} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Hit Points</label>
-              <input type="text" name="hitPoints" value={sheetData.hitPoints} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-          </div>
-          {/* Ability Scores */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Strength</label>
-              <input type="text" name="strength" value={sheetData.strength} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Dexterity</label>
-              <input type="text" name="dexterity" value={sheetData.dexterity} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Constitution</label>
-              <input type="text" name="constitution" value={sheetData.constitution} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Intelligence</label>
-              <input type="text" name="intelligence" value={sheetData.intelligence} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Wisdom</label>
-              <input type="text" name="wisdom" value={sheetData.wisdom} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Charisma</label>
-              <input type="text" name="charisma" value={sheetData.charisma} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-          </div>
-          {/* Additional Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Initiative</label>
-              <input type="text" name="initiative" value={sheetData.initiative} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Speed</label>
-              <input type="text" name="speed" value={sheetData.speed} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Size</label>
-              <input type="text" name="size" value={sheetData.size} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Passive Perception</label>
-              <input type="text" name="passivePerception" value={sheetData.passivePerception} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Hit Dice</label>
-              <input type="text" name="hitDice" value={sheetData.hitDice} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Proficiency Bonus</label>
-              <input type="text" name="proficiencyBonus" value={sheetData.proficiencyBonus} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-          </div>
-          {/* Death Saves & Inspiration */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Death Saves</label>
-              <input type="text" name="deathSaves" value={sheetData.deathSaves} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Successes/Failures" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Heroic Inspiration</label>
-              <input type="text" name="heroicInspiration" value={sheetData.heroicInspiration} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-          </div>
-          {/* Tools, Weapons, Armor, Training & Background */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Tools</label>
-              <input type="text" name="tools" value={sheetData.tools} onChange={handleChange} className="border p-1 rounded w-full" placeholder="List tools" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Weapons</label>
-              <input type="text" name="weapons" value={sheetData.weapons} onChange={handleChange} className="border p-1 rounded w-full" placeholder="List weapons" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Training</label>
-              <input type="text" name="training" value={sheetData.training} onChange={handleChange} className="border p-1 rounded w-full" placeholder="List training" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Background</label>
-              <input type="text" name="background" value={sheetData.background} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Enter background" />
-            </div>
-          </div>
-          {/* Skills */}
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-amber-400 mb-2">Skills</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: "Animal Handling", name: "animalHandling" },
-                { label: "Insight", name: "insight" },
-                { label: "Medicine", name: "medicine" },
-                { label: "Perception", name: "perception" },
-                { label: "Survival", name: "survival" },
-                { label: "Deception", name: "deception" },
-                { label: "Intimidation", name: "intimidation" },
-                { label: "Performance", name: "performance" },
-                { label: "Persuasion", name: "persuasion" },
-                { label: "Acrobatics", name: "acrobatics" },
-                { label: "Sleight of Hand", name: "sleightOfHand" },
-                { label: "Stealth", name: "stealth" },
-                { label: "Athletics", name: "athletics" },
-                { label: "Arcana", name: "arcana" },
-                { label: "History", name: "history" },
-                { label: "Investigation", name: "investigation" },
-                { label: "Nature", name: "nature" },
-                { label: "Religion", name: "religion" },
-              ].map((skill) => (
-                <div key={skill.name}>
-                  <label className="block text-sm font-medium text-amber-400">{skill.label}</label>
-                  <input type="text" name={skill.name} value={sheetData[skill.name]} onChange={handleChange} className="border p-1 rounded w-full" />
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Additional Info */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Class Level & Temp Spent</label>
-              <input type="text" name="classLevel" value={sheetData.classLevel} onChange={handleChange} className="border p-1 rounded w-full" placeholder="e.g., Level 5, Temp: 3" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Shield</label>
-              <input type="text" name="shield" value={sheetData.shield} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Successes</label>
-              <input type="text" name="successes" value={sheetData.successes} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Equipment, Training & Proficiencies</label>
-              <input type="text" name="equipment" value={sheetData.equipment} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Comma separated list" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Feats</label>
-              <input type="text" name="feats" value={sheetData.feats} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Comma separated list" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Class Features & Weapons/Damage Cantrips</label>
-              <input type="text" name="classFeatures" value={sheetData.classFeatures} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Comma separated list" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Species Traits</label>
-              <input type="text" name="speciesTraits" value={sheetData.speciesTraits} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Comma separated list" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Shields (Light/Medium/Heavy)</label>
-              <input type="text" name="shields" value={sheetData.shields} onChange={handleChange} className="border p-1 rounded w-full" placeholder="e.g., Light, Medium, Heavy" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Casting Time</label>
-              <input type="text" name="castingTime" value={sheetData.castingTime} onChange={handleChange} className="border p-1 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Concentration, Ritual & Required Material</label>
-              <input type="text" name="concentrationRitual" value={sheetData.concentrationRitual} onChange={handleChange} className="border p-1 rounded w-full" placeholder="Details" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-amber-400">Currency (CP, SP, EP, GP, PP)</label>
-              <input type="text" name="currency" value={sheetData.currency} onChange={handleChange} className="border p-1 rounded w-full" placeholder="e.g., 10 CP, 5 SP" />
-            </div>
-          </div>
+      {/* Basic Info */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Character Name</label>
+          <input
+            type="text"
+            name="characterName"
+            value={sheetData.characterName}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
         </div>
-      );
-    }
-
-    /** Main DnDTracker Component */
-    function DnDTracker() {
-      const [collapsedCharacters, toggleCharacterCollapse] = useCollapseState("collapsedCharacters");
-      const [collapsedEnemies, toggleEnemyCollapse] = useCollapseState("collapsedEnemies");
-
-      const [characters, setCharacters] = React.useState(() => {
-        const saved = localStorage.getItem("characters");
-        let loaded = saved ? JSON.parse(saved) : [{
-          id: 1,
-          name: "Jory",
-          class: "Cleric/Human",
-          health: 100,
-          maxHealth: 100,
-          armorClass: 15,
-          equippedWeapon: "Mace +1",
-          status: [],
-          effects: [],
-          inventory: ["Mace", "Shield"],
-          specialAbilities: ["Turn Undead"],
-          cantrips: ["Light", "Sacred Flame"],
-          spellsMagic: ["Cure Wounds", "Bless"],
-          image: null,
-          level: 1,
-          xp: 0,
-          initiative: 0,
-          notes: "",
-          deathSaves: { success: 0, fail: 0 },
-        }];
-        return loaded.map((c) => ({
-          ...c,
-          level: c.level || 1,
-          xp: c.xp || 0,
-          initiative: c.initiative || 0,
-          notes: c.notes || "",
-          deathSaves: c.deathSaves || { success: 0, fail: 0 },
-          armorClass: c.armorClass || 10,
-          equippedWeapon: c.equippedWeapon || "None",
-          cantrips: Array.isArray(c.cantrips) ? c.cantrips : []
-        }));
-      });
-
-      const [enemies, setEnemies] = React.useState(() => {
-        const saved = localStorage.getItem("enemies");
-        return saved ? JSON.parse(saved) : [];
-      });
-
-      const [statRows, setStatRows] = React.useState(() => {
-        const saved = localStorage.getItem("statRows");
-        return saved ? JSON.parse(saved) : [{ id: 1, label: "Jory", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }];
-      });
-
-      const [mapImage, setMapImage] = React.useState(() => localStorage.getItem("mapImage") || null);
-      const [dotPositions, setDotPositions] = React.useState(() => {
-        const saved = localStorage.getItem("dotPositions");
-        const defaultDots = [
-          // Party tokens
-          { x: 10, y: 10, color: "#EF4444", label: "Party 1" },
-          { x: 25, y: 10, color: "#3B82F6", label: "Party 2" },
-          { x: 40, y: 10, color: "#10B981", label: "Party 3" },
-          { x: 55, y: 10, color: "#8B5CF6", label: "Party 4" },
-          { x: 70, y: 10, color: "#06B6D4", label: "Party 5" },
-          { x: 85, y: 10, color: "#D946EF", label: "Party 6" },
-          // Enemy tokens
-          { x: 10, y: 90, color: "#F97316", label: "Enemy 1" },
-          { x: 25, y: 90, color: "#EAB308", label: "Enemy 2" },
-          { x: 40, y: 90, color: "#A3E635", label: "Enemy 3" },
-          { x: 55, y: 90, color: "#92400E", label: "Enemy 4" },
-          { x: 70, y: 90, color: "#6366F1", label: "Enemy 5" },
-          { x: 85, y: 90, color: "#14B8A6", label: "Enemy 6" }
-        ];
-        return saved ? JSON.parse(saved) : defaultDots;
-      });
-
-      React.useEffect(() => {
-        localStorage.setItem("characters", JSON.stringify(characters));
-      }, [characters]);
-      React.useEffect(() => {
-        localStorage.setItem("enemies", JSON.stringify(enemies));
-      }, [enemies]);
-      React.useEffect(() => {
-        localStorage.setItem("statRows", JSON.stringify(statRows));
-      }, [statRows]);
-      React.useEffect(() => {
-        localStorage.setItem("mapImage", mapImage);
-        localStorage.setItem("dotPositions", JSON.stringify(dotPositions));
-      }, [mapImage, dotPositions]);
-
-      function addCharacter() {
-        const newId = Date.now();
-        setCharacters((prev) => [
-          ...prev,
-          {
-            id: newId,
-            name: "New Character",
-            class: "Class/Race",
-            health: 50,
-            maxHealth: 50,
-            armorClass: 10,
-            equippedWeapon: "None",
-            status: [],
-            effects: [],
-            inventory: [],
-            specialAbilities: [],
-            cantrips: [],
-            spellsMagic: [],
-            image: null,
-            level: 1,
-            xp: 0,
-            initiative: 0,
-            notes: "",
-            deathSaves: { success: 0, fail: 0 },
-          },
-        ]);
-      }
-
-      function removeCharacter(charId) {
-        setCharacters((prev) => prev.filter((c) => c.id !== charId));
-      }
-
-      function updateCharacter(updated) {
-        setCharacters((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      }
-
-      function healCharacter(charId, amt) {
-        setCharacters((prev) => prev.map((c) => (c.id === charId ? { ...c, health: Math.min(c.maxHealth, c.health + amt) } : c)));
-      }
-
-      function damageCharacter(charId, amt) {
-        setCharacters((prev) => prev.map((c) => (c.id === charId ? { ...c, health: Math.max(0, c.health - amt) } : c)));
-      }
-
-      function removeStatus(charId, idx) {
-        setCharacters((prev) => prev.map((c) => {
-          if (c.id === charId) {
-            const updated = [...c.status];
-            updated.splice(idx, 1);
-            return { ...c, status: updated };
-          }
-          return c;
-        }));
-      }
-
-      function removeEffect(charId, idx) {
-        setCharacters((prev) => prev.map((c) => {
-          if (c.id === charId) {
-            const updated = [...c.effects];
-            updated.splice(idx, 1);
-            return { ...c, effects: updated };
-          }
-          return c;
-        }));
-      }
-
-      function removeItem(charId, idx) {
-        setCharacters((prev) => prev.map((c) => {
-          if (c.id === charId) {
-            const updated = [...c.inventory];
-            updated.splice(idx, 1);
-            return { ...c, inventory: updated };
-          }
-          return c;
-        }));
-      }
-
-      function removeAbility(charId, idx) {
-        setCharacters((prev) => prev.map((c) => {
-          if (c.id === charId) {
-            const updated = [...c.specialAbilities];
-            updated.splice(idx, 1);
-            return { ...c, specialAbilities: updated };
-          }
-          return c;
-        }));
-      }
-
-      function removeSpell(charId, idx) {
-        setCharacters((prev) => prev.map((c) => {
-          if (c.id === charId) {
-            const updated = [...c.spellsMagic];
-            updated.splice(idx, 1);
-            return { ...c, spellsMagic: updated };
-          }
-          return c;
-        }));
-      }
-
-      function addEnemy() {
-        setEnemies((prev) => [
-          ...prev,
-          { id: Date.now(), name: "Enemy " + (prev.length + 1), health: 50, maxHealth: 50 },
-        ]);
-      }
-
-      function removeEnemy(enemyId) {
-        setEnemies((prev) => prev.filter((e) => e.id !== enemyId));
-      }
-
-      function healEnemy(enemyId, amt) {
-        setEnemies((prev) => prev.map((e) => (e.id === enemyId ? { ...e, health: Math.min(e.maxHealth, e.health + amt) } : e)));
-      }
-
-      function damageEnemy(enemyId, amt) {
-        setEnemies((prev) => prev.map((e) => (e.id === enemyId ? { ...e, health: Math.max(0, e.health - amt) } : e)));
-      }
-
-      function updateEnemy(updated) {
-        setEnemies((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-      }
-
-      return (
-        <div className="container mx-auto p-4 space-y-4">
-          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-            <DarkModeToggle />
-            <div className="flex gap-2">
-              <button className="px-3 py-1 btn-dnd rounded hover:bg-amber-800" onClick={backupLocalStorage}>
-                Backup Local Storage
-              </button>
-              <label className="px-3 py-1 btn-dnd rounded hover:bg-amber-800 cursor-pointer text-sm">
-                Restore Data
-                <input type="file" accept=".json" onChange={restoreLocalStorage} className="hidden" />
-              </label>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            {/* CopyButton and copyForPrompt functions remain unchanged */}
-          </div>
-
-          <div className="app-container p-4 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-2">D&D Character & Party Tracker</h2>
-            <div className="mb-6 bg-gray-800 p-3 rounded-lg border border-amber-900">
-              <h3 className="text-amber-400 font-bold mb-1">D&D Player Tracker Features:</h3>
-              <ol className="list-decimal pl-5 text-sm text-amber-300">
-                <li className="mb-1">Track character details including Class/Race combinations</li>
-                <li className="mb-1">Manage health, status effects, inventory, and abilities</li>
-                <li className="mb-1">Use the interactive map with up to 12 enemy tokens</li>
-                <li className="mb-1">Organize character stats with the calculator</li>
-                <li className="mb-1">Track enemies and their health separately</li>
-                <li className="mb-1">Quick-reference D&D classes and races through external links</li>
-                <li className="mb-1">Backup and restore your campaign data</li>
-              </ol>
-            </div>
-
-            {/* Party Status Section */}
-            <div className="character-card p-4 rounded-lg mb-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-amber-400">Party Status</h2>
-                <button className="px-3 py-1 btn-dnd rounded" onClick={addCharacter}>Add Character</button>
-              </div>
-              <div className="grid gap-4">
-                {characters.map((char) => (
-                  // CharacterCard component remains unchanged from previous code
-                  <div key={char.id}>
-                    {/* Render CharacterCard here */}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Other Components: PartyImages, StatsSection, Enemy Section, MapSection, ClassesSection, RacesSection, MonsterCreatureList */}
-            {/* … (These remain as in the previous code.) */}
-
-            {/* New: CharacterSheet */}
-            <CharacterSheet />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Class</label>
+          <input
+            type="text"
+            name="class"
+            value={sheetData.class}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
         </div>
-      );
-    }
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Armor</label>
+          <input
+            type="text"
+            name="armor"
+            value={sheetData.armor}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Hit Points</label>
+          <input
+            type="text"
+            name="hitPoints"
+            value={sheetData.hitPoints}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+      </div>
 
-    ReactDOM.render(<DnDTracker />, document.getElementById("root"));
-  </script>
+      {/* Row 2: Proficiency, Inspiration, Death Saves */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Proficiency Bonus</label>
+          <input
+            type="text"
+            name="proficiencyBonus"
+            value={sheetData.proficiencyBonus}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Heroic Inspiration</label>
+          <input
+            type="text"
+            name="heroicInspiration"
+            value={sheetData.heroicInspiration}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Death Saves</label>
+          <input
+            type="text"
+            name="deathSaves"
+            value={sheetData.deathSaves}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Successes/Failures"
+          />
+        </div>
+      </div>
+
+      {/* Ability Scores */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Ability Scores</h2>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Strength</label>
+          <input
+            type="text"
+            name="strength"
+            value={sheetData.strength}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Dexterity</label>
+          <input
+            type="text"
+            name="dexterity"
+            value={sheetData.dexterity}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Constitution</label>
+          <input
+            type="text"
+            name="constitution"
+            value={sheetData.constitution}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Intelligence</label>
+          <input
+            type="text"
+            name="intelligence"
+            value={sheetData.intelligence}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Wisdom</label>
+          <input
+            type="text"
+            name="wisdom"
+            value={sheetData.wisdom}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Charisma</label>
+          <input
+            type="text"
+            name="charisma"
+            value={sheetData.charisma}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+      </div>
+
+      {/* Additional Stats */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Additional Stats</h2>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Initiative</label>
+          <input
+            type="text"
+            name="initiative"
+            value={sheetData.initiative}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Speed</label>
+          <input
+            type="text"
+            name="speed"
+            value={sheetData.speed}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Size</label>
+          <input
+            type="text"
+            name="size"
+            value={sheetData.size}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Passive Perception</label>
+          <input
+            type="text"
+            name="passivePerception"
+            value={sheetData.passivePerception}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Hit Dice</label>
+          <input
+            type="text"
+            name="hitDice"
+            value={sheetData.hitDice}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+      </div>
+
+      {/* Tools, Weapons, Armor, Training, Languages */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Equipment & Background</h2>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Tools</label>
+          <input
+            type="text"
+            name="tools"
+            value={sheetData.tools}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="List tools"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Weapons</label>
+          <input
+            type="text"
+            name="weapons"
+            value={sheetData.weapons}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="List weapons"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Armor Training</label>
+          <input
+            type="text"
+            name="armorTraining"
+            value={sheetData.armorTraining}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Light, Medium, Heavy, etc."
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Background</label>
+          <input
+            type="text"
+            name="background"
+            value={sheetData.background}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Your character's background"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Languages</label>
+          <input
+            type="text"
+            name="languages"
+            value={sheetData.languages}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="List languages"
+          />
+        </div>
+      </div>
+
+      {/* Skills */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Skills</h2>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        {[
+          { label: "Animal Handling", name: "animalHandling" },
+          { label: "Insight", name: "insight" },
+          { label: "Medicine", name: "medicine" },
+          { label: "Perception", name: "perception" },
+          { label: "Survival", name: "survival" },
+          { label: "Deception", name: "deception" },
+          { label: "Intimidation", name: "intimidation" },
+          { label: "Performance", name: "performance" },
+          { label: "Persuasion", name: "persuasion" },
+          { label: "Acrobatics", name: "acrobatics" },
+          { label: "Sleight of Hand", name: "sleightOfHand" },
+          { label: "Stealth", name: "stealth" },
+          { label: "Athletics", name: "athletics" },
+          { label: "Arcana", name: "arcana" },
+          { label: "History", name: "history" },
+          { label: "Investigation", name: "investigation" },
+          { label: "Nature", name: "nature" },
+          { label: "Religion", name: "religion" },
+        ].map((skill) => (
+          <div key={skill.name}>
+            <label className="block text-sm font-medium text-amber-400">{skill.label}</label>
+            <input
+              type="text"
+              name={skill.name}
+              value={sheetData[skill.name]}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Additional Info */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Additional Details</h2>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Class Level & Temp Spent</label>
+          <input
+            type="text"
+            name="classLevel"
+            value={sheetData.classLevel}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="e.g., Level 5, Temp: 3"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Shield</label>
+          <input
+            type="text"
+            name="shield"
+            value={sheetData.shield}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Successes</label>
+          <input
+            type="text"
+            name="successes"
+            value={sheetData.successes}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Equipment / Training & Proficiencies</label>
+          <input
+            type="text"
+            name="equipment"
+            value={sheetData.equipment}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Comma separated list"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Feats</label>
+          <input
+            type="text"
+            name="feats"
+            value={sheetData.feats}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Comma separated list"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Class Features & Weapons/Damage Cantrips</label>
+          <input
+            type="text"
+            name="classFeatures"
+            value={sheetData.classFeatures}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Comma separated list"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Species Traits</label>
+          <input
+            type="text"
+            name="speciesTraits"
+            value={sheetData.speciesTraits}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Comma separated list"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Shields (Light/Medium/Heavy)</label>
+          <input
+            type="text"
+            name="shields"
+            value={sheetData.shields}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="e.g., Light, Medium, Heavy"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Casting Time</label>
+          <input
+            type="text"
+            name="castingTime"
+            value={sheetData.castingTime}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Concentration, Ritual & Required Material</label>
+          <input
+            type="text"
+            name="concentrationRitual"
+            value={sheetData.concentrationRitual}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="Details"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Currency (CP, SP, EP, GP, PP)</label>
+          <input
+            type="text"
+            name="currency"
+            value={sheetData.currency}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="e.g., 10 CP, 5 SP"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** ========== MAIN APP COMPONENT ========== */
+function App() {
+  return (
+    <div className="min-h-screen p-4">
+      {/* Top bar with dark mode, backup, restore */}
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+        <DarkModeToggle />
+        <div className="flex gap-2">
+          <button className="px-3 py-1 btn-dnd rounded" onClick={backupLocalStorage}>
+            Backup Local Storage
+          </button>
+          <label className="px-3 py-1 btn-dnd rounded cursor-pointer text-sm">
+            Restore Data
+            <input type="file" accept=".json" onChange={restoreLocalStorage} className="hidden" />
+          </label>
+        </div>
+      </div>
+
+      <CharacterSheet />
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
 </body>
 </html>
