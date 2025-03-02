@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>D&D Character Sheet</title>
+  <title>D&D 5e Character Sheet</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React & ReactDOM -->
@@ -29,7 +28,7 @@
       color: #fafafa;
       background-blend-mode: normal;
     }
-    /* Basic theming for container and elements */
+    /* Container for the sheet */
     .sheet-container {
       max-width: 900px;
       margin: 0 auto;
@@ -78,8 +77,11 @@
 
 /** ========== LOCALSTORAGE BACKUP / RESTORE ========== */
 function backupLocalStorage() {
-  // We'll backup the entire localStorage. This includes the characterSheet data
-  const data = { characterSheet: localStorage.getItem("characterSheet"), darkMode: localStorage.getItem("darkMode") };
+  // We'll backup the entire localStorage for this sheet
+  const data = {
+    characterSheet: localStorage.getItem("characterSheet"),
+    darkMode: localStorage.getItem("darkMode"),
+  };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -97,7 +99,6 @@ function restoreLocalStorage(event) {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
-      // If the JSON includes "characterSheet" or "darkMode", restore them
       if (data.characterSheet !== undefined) {
         localStorage.setItem("characterSheet", data.characterSheet);
       }
@@ -130,37 +131,103 @@ function DarkModeToggle() {
   );
 }
 
+/** ========== ATTACKS & SPELLS ROW COMPONENT ========== */
+function AttackSpellRow({ index, row, onChangeRow, onRemoveRow }) {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    onChangeRow(index, { ...row, [name]: value });
+  };
+
+  return (
+    <tr>
+      <td className="border p-1">
+        <input
+          type="text"
+          name="name"
+          value={row.name}
+          onChange={handleChange}
+          className="border p-1 w-full"
+        />
+      </td>
+      <td className="border p-1">
+        <input
+          type="text"
+          name="atkBonusOrDC"
+          value={row.atkBonusOrDC}
+          onChange={handleChange}
+          className="border p-1 w-full"
+        />
+      </td>
+      <td className="border p-1">
+        <input
+          type="text"
+          name="damageType"
+          value={row.damageType}
+          onChange={handleChange}
+          className="border p-1 w-full"
+        />
+      </td>
+      <td className="border p-1">
+        <input
+          type="text"
+          name="notes"
+          value={row.notes}
+          onChange={handleChange}
+          className="border p-1 w-full"
+        />
+      </td>
+      <td className="border p-1 text-center">
+        <button
+          className="px-2 py-1 btn-dnd rounded text-sm"
+          onClick={() => onRemoveRow(index)}
+        >
+          X
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 /** ========== MAIN CHARACTER SHEET COMPONENT ========== */
 function CharacterSheet() {
-  // A single state object for the entire character sheet
   const [sheetData, setSheetData] = React.useState(() => {
-    // Load from local storage or default
     const saved = localStorage.getItem("characterSheet");
     if (saved) return JSON.parse(saved);
     return {
       characterName: "",
-      class: "",
-      armor: "",
+      levelName: "",
+      armorClass: "",
       hitPoints: "",
       proficiencyBonus: "",
       heroicInspiration: "",
-      wisdom: "",
-      charisma: "",
-      dexterity: "",
-      strength: "",
-      constitution: "",
-      intelligence: "",
+      // Death Saves
+      deathSaveSuccesses: "",
+      deathSaveFailures: "",
+      // Ability Scores, Mods, and Saves
+      strengthScore: "", strengthMod: "", strengthSave: "",
+      dexterityScore: "", dexterityMod: "", dexteritySave: "",
+      constitutionScore: "", constitutionMod: "", constitutionSave: "",
+      intelligenceScore: "", intelligenceMod: "", intelligenceSave: "",
+      wisdomScore: "", wisdomMod: "", wisdomSave: "",
+      charismaScore: "", charismaMod: "", charismaSave: "",
+      // Additional
       initiative: "",
       speed: "",
       size: "",
       passivePerception: "",
       hitDice: "",
-      deathSaves: "",
+      tempSpent: "",
       tools: "",
-      weapons: "",
+      languages: "",
       armorTraining: "",
       background: "",
-      languages: "",  // New field for languages
+      feats: "",
+      classFeatures: "",
+      speciesTraits: "",
+      shields: "",
+      castingTime: "",
+      concentrationRitual: "",
+      currency: "",
       // Skills
       animalHandling: "",
       insight: "",
@@ -180,94 +247,119 @@ function CharacterSheet() {
       investigation: "",
       nature: "",
       religion: "",
-      // Additional
-      classLevel: "",
-      shield: "",
-      successes: "",
-      equipment: "",
-      feats: "",
-      classFeatures: "",
-      speciesTraits: "",
-      shields: "",
-      castingTime: "",
-      concentrationRitual: "",
-      currency: ""
+      // Attacks & Spells array
+      attacksAndSpells: []
     };
   });
 
-  // Whenever sheetData changes, save to local storage
+  // Auto-save to localStorage whenever sheetData changes
   React.useEffect(() => {
     localStorage.setItem("characterSheet", JSON.stringify(sheetData));
   }, [sheetData]);
 
+  // Handle simple input changes
   function handleChange(e) {
     const { name, value } = e.target;
     setSheetData((prev) => ({ ...prev, [name]: value }));
   }
 
-  // "Copy for Prompt" - creates a text summary of the entire sheet
+  // Dynamic table for Attacks & Spells
+  function addAttackSpellRow() {
+    setSheetData((prev) => ({
+      ...prev,
+      attacksAndSpells: [
+        ...prev.attacksAndSpells,
+        { name: "", atkBonusOrDC: "", damageType: "", notes: "" }
+      ]
+    }));
+  }
+  function updateAttackSpellRow(index, updatedRow) {
+    setSheetData((prev) => {
+      const copy = [...prev.attacksAndSpells];
+      copy[index] = updatedRow;
+      return { ...prev, attacksAndSpells: copy };
+    });
+  }
+  function removeAttackSpellRow(index) {
+    setSheetData((prev) => {
+      const copy = [...prev.attacksAndSpells];
+      copy.splice(index, 1);
+      return { ...prev, attacksAndSpells: copy };
+    });
+  }
+
+  // "Copy for Prompt" - create a text summary
   function copyForPrompt() {
+    const s = sheetData;
     const textSummary = `
-D&D Character Sheet
+D&D 5e Character Sheet
 
-Character Name: ${sheetData.characterName}
-Class: ${sheetData.class}
-Armor: ${sheetData.armor}
-Hit Points: ${sheetData.hitPoints}
-Proficiency Bonus: ${sheetData.proficiencyBonus}
-Heroic Inspiration: ${sheetData.heroicInspiration}
-Death Saves: ${sheetData.deathSaves}
+Name: ${s.characterName}
+Level: ${s.levelName}
+Armor Class: ${s.armorClass}
+Hit Points: ${s.hitPoints}
+Proficiency Bonus: ${s.proficiencyBonus}
+Heroic Inspiration: ${s.heroicInspiration}
 
-STR: ${sheetData.strength}
-DEX: ${sheetData.dexterity}
-CON: ${sheetData.constitution}
-INT: ${sheetData.intelligence}
-WIS: ${sheetData.wisdom}
-CHA: ${sheetData.charisma}
+Death Saves:
+  - Successes: ${s.deathSaveSuccesses}
+  - Failures:  ${s.deathSaveFailures}
 
-Initiative: ${sheetData.initiative}
-Speed: ${sheetData.speed}
-Size: ${sheetData.size}
-Passive Perception: ${sheetData.passivePerception}
-Hit Dice: ${sheetData.hitDice}
+Ability Scores, Modifiers, and Saves:
+  - STR: ${s.strengthScore} (mod ${s.strengthMod}), Save: ${s.strengthSave}
+  - DEX: ${s.dexterityScore} (mod ${s.dexterityMod}), Save: ${s.dexteritySave}
+  - CON: ${s.constitutionScore} (mod ${s.constitutionMod}), Save: ${s.constitutionSave}
+  - INT: ${s.intelligenceScore} (mod ${s.intelligenceMod}), Save: ${s.intelligenceSave}
+  - WIS: ${s.wisdomScore} (mod ${s.wisdomMod}), Save: ${s.wisdomSave}
+  - CHA: ${s.charismaScore} (mod ${s.charismaMod}), Save: ${s.charismaSave}
 
-Tools: ${sheetData.tools}
-Weapons: ${sheetData.weapons}
-Armor Training: ${sheetData.armorTraining}
-Background: ${sheetData.background}
-Languages: ${sheetData.languages}
+Initiative: ${s.initiative}
+Speed: ${s.speed}
+Size: ${s.size}
+Passive Perception: ${s.passivePerception}
+Hit Dice: ${s.hitDice}
+Temp Spent: ${s.tempSpent}
+
+Tools: ${s.tools}
+Languages: ${s.languages}
+Armor Training: ${s.armorTraining}
+Background: ${s.background}
+
+Feats: ${s.feats}
+Class Features: ${s.classFeatures}
+Species Traits: ${s.speciesTraits}
+Shields (Light/Medium/Heavy): ${s.shields}
+Casting Time: ${s.castingTime}
+Concentration/Ritual & Materials: ${s.concentrationRitual}
+Currency (CP, SP, EP, GP, PP): ${s.currency}
 
 Skills:
-  - Animal Handling: ${sheetData.animalHandling}
-  - Insight: ${sheetData.insight}
-  - Medicine: ${sheetData.medicine}
-  - Perception: ${sheetData.perception}
-  - Survival: ${sheetData.survival}
-  - Deception: ${sheetData.deception}
-  - Intimidation: ${sheetData.intimidation}
-  - Performance: ${sheetData.performance}
-  - Persuasion: ${sheetData.persuasion}
-  - Acrobatics: ${sheetData.acrobatics}
-  - Sleight of Hand: ${sheetData.sleightOfHand}
-  - Stealth: ${sheetData.stealth}
-  - Athletics: ${sheetData.athletics}
-  - Arcana: ${sheetData.arcana}
-  - History: ${sheetData.history}
-  - Investigation: ${sheetData.investigation}
-  - Nature: ${sheetData.nature}
-  - Religion: ${sheetData.religion}
+  - Animal Handling: ${s.animalHandling}
+  - Insight: ${s.insight}
+  - Medicine: ${s.medicine}
+  - Perception: ${s.perception}
+  - Survival: ${s.survival}
+  - Deception: ${s.deception}
+  - Intimidation: ${s.intimidation}
+  - Performance: ${s.performance}
+  - Persuasion: ${s.persuasion}
+  - Acrobatics: ${s.acrobatics}
+  - Sleight of Hand: ${s.sleightOfHand}
+  - Stealth: ${s.stealth}
+  - Athletics: ${s.athletics}
+  - Arcana: ${s.arcana}
+  - History: ${s.history}
+  - Investigation: ${s.investigation}
+  - Nature: ${s.nature}
+  - Religion: ${s.religion}
 
-Class Level & Temp Spent: ${sheetData.classLevel}
-Shield: ${sheetData.shield}
-Successes: ${sheetData.successes}
-Equipment, Training & Proficiencies: ${sheetData.equipment}
-Feats: ${sheetData.feats}
-Class Features & Weapons/Damage Cantrips: ${sheetData.classFeatures}
-Species Traits: ${sheetData.speciesTraits}
-Shields (Light/Medium/Heavy): ${sheetData.shields}
-Casting Time: ${sheetData.castingTime}
-Concentration/Ritual & Materials: ${sheetData.concentrationRitual}
-Currency: ${sheetData.currency}
+Attacks & Spells:
+${s.attacksAndSpells.map((row, i) => `
+  ${i+1}) Name: ${row.name}
+     Atk Bonus/DC: ${row.atkBonusOrDC}
+     Damage & Type: ${row.damageType}
+     Notes: ${row.notes}
+`).join("")}
 `.trim();
 
     navigator.clipboard.writeText(textSummary)
@@ -277,8 +369,8 @@ Currency: ${sheetData.currency}
 
   return (
     <div className="sheet-container">
-      <h1 className="text-2xl font-bold mb-4 text-center text-amber-400">D&D Character Sheet</h1>
-      {/* Buttons row */}
+      <h1 className="text-2xl font-bold mb-4 text-center text-amber-400">D&D 5e Character Sheet</h1>
+      {/* Top row of buttons */}
       <div className="flex flex-wrap gap-2 justify-center mb-4">
         <button className="px-3 py-1 btn-dnd rounded" onClick={copyForPrompt}>
           Copy for Prompt
@@ -298,21 +390,21 @@ Currency: ${sheetData.currency}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-amber-400">Class</label>
+          <label className="block text-sm font-medium text-amber-400">Level (e.g. 5 / Name)</label>
           <input
             type="text"
-            name="class"
-            value={sheetData.class}
+            name="levelName"
+            value={sheetData.levelName}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-amber-400">Armor</label>
+          <label className="block text-sm font-medium text-amber-400">Armor Class</label>
           <input
             type="text"
-            name="armor"
-            value={sheetData.armor}
+            name="armorClass"
+            value={sheetData.armorClass}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
@@ -329,7 +421,7 @@ Currency: ${sheetData.currency}
         </div>
       </div>
 
-      {/* Row 2: Proficiency, Inspiration, Death Saves */}
+      {/* Row 2: Prof Bonus, Inspiration, Death Saves */}
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-amber-400">Proficiency Bonus</label>
@@ -352,77 +444,205 @@ Currency: ${sheetData.currency}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-amber-400">Death Saves</label>
+          <label className="block text-sm font-medium text-amber-400">Temp Spent (Temp HP)</label>
           <input
             type="text"
-            name="deathSaves"
-            value={sheetData.deathSaves}
+            name="tempSpent"
+            value={sheetData.tempSpent}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="Successes/Failures"
           />
         </div>
       </div>
 
-      {/* Ability Scores */}
-      <h2 className="text-xl font-bold text-amber-400 mb-2">Ability Scores</h2>
+      {/* Death Saves */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Death Saves</h2>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Successes</label>
+          <input
+            type="text"
+            name="deathSaveSuccesses"
+            value={sheetData.deathSaveSuccesses}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="0-3"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-amber-400">Failures</label>
+          <input
+            type="text"
+            name="deathSaveFailures"
+            value={sheetData.deathSaveFailures}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+            placeholder="0-3"
+          />
+        </div>
+      </div>
+
+      {/* Ability Scores, Mods, Saves */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Abilities & Saving Throws</h2>
       <div className="grid grid-cols-3 gap-4 mb-4">
+        {/* Strength */}
         <div>
-          <label className="block text-sm font-medium text-amber-400">Strength</label>
+          <label className="block text-sm font-medium text-amber-400">Strength Score</label>
           <input
             type="text"
-            name="strength"
-            value={sheetData.strength}
+            name="strengthScore"
+            value={sheetData.strengthScore}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Strength Mod</label>
+          <input
+            type="text"
+            name="strengthMod"
+            value={sheetData.strengthMod}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Strength Save</label>
+          <input
+            type="text"
+            name="strengthSave"
+            value={sheetData.strengthSave}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
         </div>
+        {/* Dexterity */}
         <div>
-          <label className="block text-sm font-medium text-amber-400">Dexterity</label>
+          <label className="block text-sm font-medium text-amber-400">Dexterity Score</label>
           <input
             type="text"
-            name="dexterity"
-            value={sheetData.dexterity}
+            name="dexterityScore"
+            value={sheetData.dexterityScore}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Dexterity Mod</label>
+          <input
+            type="text"
+            name="dexterityMod"
+            value={sheetData.dexterityMod}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Dexterity Save</label>
+          <input
+            type="text"
+            name="dexteritySave"
+            value={sheetData.dexteritySave}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
         </div>
+        {/* Constitution */}
         <div>
-          <label className="block text-sm font-medium text-amber-400">Constitution</label>
+          <label className="block text-sm font-medium text-amber-400">Constitution Score</label>
           <input
             type="text"
-            name="constitution"
-            value={sheetData.constitution}
+            name="constitutionScore"
+            value={sheetData.constitutionScore}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Constitution Mod</label>
+          <input
+            type="text"
+            name="constitutionMod"
+            value={sheetData.constitutionMod}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Constitution Save</label>
+          <input
+            type="text"
+            name="constitutionSave"
+            value={sheetData.constitutionSave}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
         </div>
+        {/* Intelligence */}
         <div>
-          <label className="block text-sm font-medium text-amber-400">Intelligence</label>
+          <label className="block text-sm font-medium text-amber-400">Intelligence Score</label>
           <input
             type="text"
-            name="intelligence"
-            value={sheetData.intelligence}
+            name="intelligenceScore"
+            value={sheetData.intelligenceScore}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Intelligence Mod</label>
+          <input
+            type="text"
+            name="intelligenceMod"
+            value={sheetData.intelligenceMod}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Intelligence Save</label>
+          <input
+            type="text"
+            name="intelligenceSave"
+            value={sheetData.intelligenceSave}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
         </div>
+        {/* Wisdom */}
         <div>
-          <label className="block text-sm font-medium text-amber-400">Wisdom</label>
+          <label className="block text-sm font-medium text-amber-400">Wisdom Score</label>
           <input
             type="text"
-            name="wisdom"
-            value={sheetData.wisdom}
+            name="wisdomScore"
+            value={sheetData.wisdomScore}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Wisdom Mod</label>
+          <input
+            type="text"
+            name="wisdomMod"
+            value={sheetData.wisdomMod}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Wisdom Save</label>
+          <input
+            type="text"
+            name="wisdomSave"
+            value={sheetData.wisdomSave}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
         </div>
+        {/* Charisma */}
         <div>
-          <label className="block text-sm font-medium text-amber-400">Charisma</label>
+          <label className="block text-sm font-medium text-amber-400">Charisma Score</label>
           <input
             type="text"
-            name="charisma"
-            value={sheetData.charisma}
+            name="charismaScore"
+            value={sheetData.charismaScore}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Charisma Mod</label>
+          <input
+            type="text"
+            name="charismaMod"
+            value={sheetData.charismaMod}
+            onChange={handleChange}
+            className="border p-1 rounded w-full"
+          />
+          <label className="block text-sm font-medium text-amber-400 mt-2">Charisma Save</label>
+          <input
+            type="text"
+            name="charismaSave"
+            value={sheetData.charismaSave}
             onChange={handleChange}
             className="border p-1 rounded w-full"
           />
@@ -484,7 +704,7 @@ Currency: ${sheetData.currency}
         </div>
       </div>
 
-      {/* Tools, Weapons, Armor, Training, Languages */}
+      {/* Equipment, Training, etc. */}
       <h2 className="text-xl font-bold text-amber-400 mb-2">Equipment & Background</h2>
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
@@ -499,14 +719,14 @@ Currency: ${sheetData.currency}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-amber-400">Weapons</label>
+          <label className="block text-sm font-medium text-amber-400">Languages</label>
           <input
             type="text"
-            name="weapons"
-            value={sheetData.weapons}
+            name="languages"
+            value={sheetData.languages}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="List weapons"
+            placeholder="List languages"
           />
         </div>
         <div>
@@ -528,18 +748,7 @@ Currency: ${sheetData.currency}
             value={sheetData.background}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="Your character's background"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-amber-400">Languages</label>
-          <input
-            type="text"
-            name="languages"
-            value={sheetData.languages}
-            onChange={handleChange}
-            className="border p-1 rounded w-full"
-            placeholder="List languages"
+            placeholder="Character's background"
           />
         </div>
       </div>
@@ -580,51 +789,42 @@ Currency: ${sheetData.currency}
         ))}
       </div>
 
-      {/* Additional Info */}
-      <h2 className="text-xl font-bold text-amber-400 mb-2">Additional Details</h2>
+      {/* Attacks & Spells */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Attacks & Spells</h2>
+      <div className="overflow-x-auto mb-4">
+        <table className="w-full border">
+          <thead>
+            <tr className="text-sm text-left">
+              <th className="border p-1">Name</th>
+              <th className="border p-1">Atk Bonus/DC</th>
+              <th className="border p-1">Damage & Type</th>
+              <th className="border p-1">Notes</th>
+              <th className="border p-1 text-center">Remove</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sheetData.attacksAndSpells.map((row, idx) => (
+              <AttackSpellRow
+                key={idx}
+                index={idx}
+                row={row}
+                onChangeRow={updateAttackSpellRow}
+                onRemoveRow={removeAttackSpellRow}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button
+        className="px-3 py-1 btn-dnd rounded mb-4"
+        onClick={addAttackSpellRow}
+      >
+        + Add Attack/Spell
+      </button>
+
+      {/* Feats, Class Features, Species Traits, etc. */}
+      <h2 className="text-xl font-bold text-amber-400 mb-2">Other Features</h2>
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <label className="block text-sm font-medium text-amber-400">Class Level & Temp Spent</label>
-          <input
-            type="text"
-            name="classLevel"
-            value={sheetData.classLevel}
-            onChange={handleChange}
-            className="border p-1 rounded w-full"
-            placeholder="e.g., Level 5, Temp: 3"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-amber-400">Shield</label>
-          <input
-            type="text"
-            name="shield"
-            value={sheetData.shield}
-            onChange={handleChange}
-            className="border p-1 rounded w-full"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-amber-400">Successes</label>
-          <input
-            type="text"
-            name="successes"
-            value={sheetData.successes}
-            onChange={handleChange}
-            className="border p-1 rounded w-full"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-amber-400">Equipment / Training & Proficiencies</label>
-          <input
-            type="text"
-            name="equipment"
-            value={sheetData.equipment}
-            onChange={handleChange}
-            className="border p-1 rounded w-full"
-            placeholder="Comma separated list"
-          />
-        </div>
         <div>
           <label className="block text-sm font-medium text-amber-400">Feats</label>
           <input
@@ -633,18 +833,18 @@ Currency: ${sheetData.currency}
             value={sheetData.feats}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="Comma separated list"
+            placeholder="Comma separated"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-amber-400">Class Features & Weapons/Damage Cantrips</label>
+          <label className="block text-sm font-medium text-amber-400">Class Features</label>
           <input
             type="text"
             name="classFeatures"
             value={sheetData.classFeatures}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="Comma separated list"
+            placeholder="Comma separated"
           />
         </div>
         <div>
@@ -655,7 +855,7 @@ Currency: ${sheetData.currency}
             value={sheetData.speciesTraits}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="Comma separated list"
+            placeholder="Comma separated"
           />
         </div>
         <div>
@@ -666,7 +866,6 @@ Currency: ${sheetData.currency}
             value={sheetData.shields}
             onChange={handleChange}
             className="border p-1 rounded w-full"
-            placeholder="e.g., Light, Medium, Heavy"
           />
         </div>
         <div>
@@ -680,7 +879,7 @@ Currency: ${sheetData.currency}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-amber-400">Concentration, Ritual & Required Material</label>
+          <label className="block text-sm font-medium text-amber-400">Concentration, Ritual & Materials</label>
           <input
             type="text"
             name="concentrationRitual"
