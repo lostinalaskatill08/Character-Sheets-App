@@ -2,1676 +2,1266 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>3D D&D Dice Roller</title>
-  <link rel="icon" href="data:,">
-  <!-- Import fonts from Google Fonts -->
+  <title>D&D 5e Character Sheet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel for in-browser JSX transform -->
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <!-- Google Font -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap"
+    rel="stylesheet"
+  />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap');
-
-    :root {
-      --primary-color: #8B0000;
-      --primary-dark: #440000;
-      --primary-light: #d10000;
-      --accent-color: #FFD700;
-      --background-dark: #1a1a1a;
-      --text-light: #fafafa;
-      --panel-bg: rgba(20, 20, 20, 0.9);
-      --panel-border: var(--primary-color);
-    }
-
     body {
-      margin: 0;
-      background: #000 url('https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js') no-repeat center center fixed;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 800 800'%3E%3Cg fill='none' stroke='%23320000' stroke-width='1'%3E%3Cpath d='M769 229L1037 260.9M927 880L731 737 520 660 309 538 40 599 295 764 126.5 879.5 40 599-197 493 102 382-31 229 126.5 79.5-69-63'/%3E%3Cpath d='M-31 229L237 261 390 382 603 493 308.5 537.5 101.5 381.5M370 905L295 764'/%3E%3Cpath d='M520 660L578 842 731 737 840 599 603 493 520 660 295 764 309 538 390 382 539 269 769 229 577.5 41.5 370 105 295 -36 126.5 79.5 237 261 102 382 40 599 -69 737 127 880'/%3E%3Cpath d='M520-140L578.5 42.5 731-63M603 493L539 269 237 261 370 105M902 382L539 269M390 382L102 382'/%3E%3Cpath d='M-222 42L126.5 79.5 370 105 539 269 577.5 41.5 927 80 769 229 902 382 603 493 731 737M295-36L577.5 41.5M578 842L295 764M40-201L127 80M102 382L-261 269'/%3E%3C/g%3E%3Cg fill='%23400000'%3E%3Ccircle cx='769' cy='229' r='5'/%3E%3Ccircle cx='539' cy='269' r='5'/%3E%3Ccircle cx='603' cy='493' r='5'/%3E%3Ccircle cx='731' cy='737' r='5'/%3E%3Ccircle cx='520' cy='660' r='5'/%3E%3Ccircle cx='309' cy='538' r='5'/%3E%3Ccircle cx='295' cy='764' r='5'/%3E%3Ccircle cx='40' cy='599' r='5'/%3E%3Ccircle cx='102' cy='382' r='5'/%3E%3Ccircle cx='127' cy='80' r='5'/%3E%3Ccircle cx='370' cy='105' r='5'/%3E%3Ccircle cx='578' cy='42' r='5'/%3E%3Ccircle cx='237' cy='261' r='5'/%3E%3Ccircle cx='390' cy='382' r='5'/%3E%3C/g%3E%3C/svg%3E");
-      color: var(--text-light);
       font-family: 'Cinzel', serif;
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr minmax(auto, 1000px) 1fr;
-      grid-template-rows: auto 1fr auto;
-      grid-template-areas:
-        "header header header"
-        "sidebar main info"
-        "footer footer footer";
-      gap: 20px;
-      padding: 20px;
+      background: #f4e4bc url("https://www.transparenttextures.com/patterns/aged-paper.png") repeat;
+      background-blend-mode: overlay;
+      color: #4a2c0f;
     }
-    
-    header {
-      grid-area: header;
-      text-align: center;
-      padding: 20px 0;
+    .dark {
+      background-color: #1a1a1a;
+      color: #fafafa;
+      background-blend-mode: normal;
     }
-    
-    h1 {
-      font-family: 'MedievalSharp', cursive;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-dark);
-      background-image: linear-gradient(to bottom, var(--accent-color), #CD7F32);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    main {
-      grid-area: main;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    
-    .sidebar {
-      grid-area: sidebar;
-      padding: 20px;
-    }
-
-    .info-panel {
-      grid-area: info;
-      padding: 20px;
-    }
-
-    /* Dice Controls Styling */
-    #controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 10px;
-      background: var(--panel-bg);
-      border: 2px solid var(--panel-border);
-      border-radius: 8px;
-      padding: 15px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(139, 0, 0, 0.3);
-      position: relative;
-      margin-bottom: 20px;
-      max-width: 100%;
-    }
-    
-    #controls::before {
-      content: "SELECT DICE";
-      position: absolute;
-      top: -12px;
-      left: 20px;
-      background: var(--primary-color);
-      padding: 0 10px;
-      font-size: 14px;
-      font-weight: bold;
-      border-radius: 4px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    }
-    
-    .dice-control {
-      background: linear-gradient(to bottom, rgba(139, 0, 0, 0.8), rgba(68, 0, 0, 0.8));
-      padding: 10px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      border: 1px solid var(--primary-dark);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-    }
-    
-    .dice-control:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-      background: linear-gradient(to bottom, rgba(160, 0, 0, 0.8), rgba(100, 0, 0, 0.8));
-    }
-    
-    .dice-control span {
+    .sheet-container {
+      max-width: 900px;
       margin: 0 auto;
-      font-weight: bold;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      padding: 1rem;
+      background-color: #1a222e;
+      border-radius: 0.5rem;
+      color: #f4e4bc;
     }
-    
-    .dice-control button {
-      background: rgba(0, 0, 0, 0.3);
-      color: var(--text-light);
-      border: 1px solid var(--primary-dark);
-      padding: 5px 10px;
-      cursor: pointer;
-      font-weight: bold;
-      border-radius: 4px;
+    input,
+    select,
+    textarea {
       font-family: 'Cinzel', serif;
-      transition: all 0.2s ease;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      color: #000000 !important;
+      background-color: #f9efd4 !important;
+      border-color: #4a3f35 !important;
     }
-    
-    .dice-control button:hover {
-      background-color: var(--primary-light);
-      transform: scale(1.1);
+    input::placeholder,
+    textarea::placeholder {
+      color: #666666;
     }
-
-    /* 3D Dice Container with Magical Border */
-    #canvas-container {
-      width: 100%;
-      height: 400px;
-      position: relative;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-    
-    #canvas-container::before {
-      content: "";
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      background: linear-gradient(45deg, var(--primary-color), transparent, var(--primary-color), transparent, var(--primary-color));
-      background-size: 400% 400%;
-      animation: borderGlow 3s ease infinite;
-      z-index: -1;
-      border-radius: 10px;
-    }
-    
-    @keyframes borderGlow {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
-    }
-
-    /* Action Buttons */
-    .action-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-    
-    #roll-button,
-    #copy-log-button {
-      padding: 12px 24px;
-      background: linear-gradient(to bottom, var(--primary-color), var(--primary-dark));
-      color: var(--text-light);
-      border: 1px solid var(--primary-dark);
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 18px;
-      font-family: 'MedievalSharp', cursive;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    #roll-button::after,
-    #copy-log-button::after {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: rgba(255, 255, 255, 0.1);
-      transform: rotate(30deg);
-      transition: all 0.3s ease;
-      opacity: 0;
-    }
-    
-    #roll-button:hover,
-    #copy-log-button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
-    }
-    
-    #roll-button:hover::after,
-    #copy-log-button:hover::after {
-      opacity: 1;
-    }
-    
-    #roll-button:active,
-    #copy-log-button:active {
-      transform: translateY(1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    }
-    
-    #roll-button {
-      background: linear-gradient(to bottom, var(--primary-color), var(--primary-dark));
-    }
-    
-    #roll-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* Roll Results Styling */
-    #results-container {
-      width: 100%;
-      margin-bottom: 20px;
-    }
-    
-    #results-header {
-      margin: 0;
-      padding: 10px 0;
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-      color: var(--text-light);
-      background: var(--primary-color);
-      border-radius: 8px 8px 0 0;
-      border-bottom: 2px solid var(--primary-dark);
-      position: relative;
-      overflow: hidden;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    }
-    
-    #results-header::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.3);
-    }
-    
-    #results {
-      background-color: var(--panel-bg);
-      padding: 15px;
-      border: 2px solid var(--panel-border);
-      border-radius: 0 0 8px 8px;
-      width: 100%;
-      max-height: 200px;
-      overflow-y: auto;
-      color: var(--text-light);
-      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-      box-sizing: border-box;
-    }
-    
-    #roll-log {
-      list-style-type: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    #roll-log li {
-      padding: 10px;
-      margin-bottom: 8px;
-      border-radius: 4px;
+    .btn-dnd {
+      background-color: #8B0000;
+      color: #f4e4bc;
       font-family: 'Cinzel', serif;
-      border-left: 4px solid var(--primary-color);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      background: rgba(30, 30, 30, 0.7);
-      animation: fadeIn 0.5s ease;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    #roll-log li:nth-child(odd) {
-      background: rgba(40, 40, 40, 0.7);
-    }
-
-    /* Dice result backgrounds with subtle gradient */
-    .d4-result,
-    .d6-result,
-    .d8-result,
-    .d10-result,
-    .d12-result,
-    .d20-result {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-right: 5px;
       font-weight: bold;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-    
-    .d4-result    { background: linear-gradient(to right, rgba(139, 0, 0, 0.7), rgba(139, 0, 0, 0.5)); }
-    .d6-result    { background: linear-gradient(to right, rgba(0, 0, 139, 0.7), rgba(0, 0, 139, 0.5)); }
-    .d8-result    { background: linear-gradient(to right, rgba(75, 0, 130, 0.7), rgba(75, 0, 130, 0.5)); }
-    .d10-result   { background: linear-gradient(to right, rgba(0, 100, 0, 0.7), rgba(0, 100, 0, 0.5)); }
-    .d12-result   { background: linear-gradient(to right, rgba(204, 204, 0, 0.7), rgba(204, 204, 0, 0.5)); }
-    .d20-result   { background: linear-gradient(to right, rgba(255, 140, 0, 0.7), rgba(255, 140, 0, 0.5)); }
-    
-    .total-result {
-      display: inline-block;
-      background: linear-gradient(to right, var(--primary-color), var(--primary-dark));
-      color: var(--text-light);
-      padding: 5px 10px;
-      border-radius: 4px;
-      margin-left: 10px;
-      font-weight: bold;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Dice Usage Information with scroll styling */
-    #dice-info {
-      background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23300000' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E"), var(--panel-bg);
-      color: var(--text-light);
-      border: 2px solid var(--panel-border);
-      border-radius: 8px;
-      width: 100%;
-      padding: 15px;
-      margin-top: 10px;
-      max-height: 500px;
-      overflow-y: auto;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-      position: relative;
-    }
-    
-    #dice-info::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 5px;
-      background: linear-gradient(to right, transparent, var(--primary-color), transparent);
-    }
-    
-    #dice-info::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 5px;
-      background: linear-gradient(to right, transparent, var(--primary-color), transparent);
-    }
-    
-    #dice-info h2 {
-      color: var(--accent-color);
-      text-align: center;
-      margin: 10px 0 15px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-      font-family: 'MedievalSharp', cursive;
-      position: relative;
-      padding-bottom: 10px;
-    }
-    
-    #dice-info h2::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 25%;
-      right: 25%;
-      height: 2px;
-      background: linear-gradient(to right, transparent, var(--primary-color), transparent);
-    }
-    
-    #dice-info h3 {
-      color: var(--accent-color);
-      margin: 15px 0 5px;
-      font-family: 'MedievalSharp', cursive;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    }
-    
-    .dice-section {
-      margin-bottom: 20px;
-      padding: 10px;
-      border-radius: 5px;
-      background: rgba(0, 0, 0, 0.2);
-      border-left: 3px solid var(--primary-color);
+      border: 1px solid #4a3f35;
       transition: all 0.3s ease;
     }
-    
-    .dice-section:hover {
-      background: rgba(0, 0, 0, 0.3);
-      transform: translateX(3px);
+    .btn-dnd:hover {
+      background-color: #6d0101;
     }
-    
-    #dice-info p {
-      margin: 8px 0;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    
-    #dice-info p strong {
-      color: var(--accent-color);
-      font-weight: bold;
-    }
-
-    /* Scroll bars styling */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 12px;
     }
-    
     ::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
+      background: #f5e8c7;
     }
-    
     ::-webkit-scrollbar-thumb {
-      background: var(--primary-color);
-      border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--primary-light);
-    }
-
-    /* Media Queries for Responsive Layout */
-    @media (max-width: 1200px) {
-      body {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "header"
-          "main"
-          "footer";
-      }
-      
-      .sidebar, .info-panel {
-        display: none;
-      }
-      
-      #dice-info {
-        display: block;
-        order: 3;
-      }
-    }
-    
-    @media (max-width: 768px) {
-      #controls {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      
-      h1 {
-        font-size: 1.8rem;
-      }
-      
-      .action-buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      #roll-button, #copy-log-button {
-        width: 100%;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      #controls {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      
-      h1 {
-        font-size: 1.5rem;
-      }
-      
-      body {
-        padding: 10px;
-      }
-    }
-
-    /* Animations */
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-    
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
-    }
-    
-    /* Critical Hit & Fumble animations */
-    .critical-hit {
-      animation: criticalHit 1s ease;
-    }
-    
-    @keyframes criticalHit {
-      0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
-      50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
-      100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
-    }
-    
-    .critical-fumble {
-      animation: criticalFumble 1s ease;
-    }
-    
-    @keyframes criticalFumble {
-      0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 0, 0, 0); }
-      25% { transform: translateX(-5px); }
-      50% { transform: translateX(5px); box-shadow: 0 0 20px rgba(255, 0, 0, 0.8); }
-      75% { transform: translateX(-5px); }
-      100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 0, 0, 0); }
+      background-color: #8b5a2b;
+      border-radius: 20px;
+      border: 3px solid #f5e8c7;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Arcane Dice Chamber</h1>
-  </header>
-  
-  <main>
-    <!-- Dice Controls -->
-    <div id="controls">
-      <div class="dice-control" data-type="d4">
-        <button class="remove">-</button>
-        <span>D4: 0</span>
-        <button class="add">+</button>
-      </div>
-      <div class="dice-control" data-type="d6">
-        <button class="remove">-</button>
-        <span>D6: 0</span>
-        <button class="add">+</button>
-      </div>
-      <div class="dice-control" data-type="d8">
-        <button class="remove">-</button>
-        <span>D8: 0</span>
-        <button class="add">+</button>
-      </div>
-      <div class="dice-control" data-type="d10">
-        <button class="remove">-</button>
-        <span>D10: 0</span>
-        <button class="add">+</button>
-      </div>
-      <div class="dice-control" data-type="d12">
-        <button class="remove">-</button>
-        <span>D12: 0</span>
-        <button class="add">+</button>
-      </div>
-      <div class="dice-control" data-type="d20">
-        <button class="remove">-</button>
-        <span>D20: 0</span>
-        <button class="add">+</button>
-      </div>
-    </div>
-
-    <!-- 3D Dice Container -->
-    <div id="canvas-container"></div>
-
-    <!-- Roll & Copy Log Buttons -->
-    <div class="action-buttons">
-      <button id="roll-button">Cast Dice</button>
-      <button id="copy-log-button">Copy Scroll</button>
-    </div>
-
-    <!-- Roll Results -->
-    <div id="results-container">
-      <div id="results-header">Roll Prophecies</div>
-      <div id="results">
-        <ul id="roll-log"></ul>
-      </div>
-    </div>
-
-    <!-- Dice Usage Information -->
-    <div id="dice-info">
-      <h2>Arcane Dice Lore</h2>
-      <div class="dice-section">
-        <h3>D4 (The Tetrahedron)</h3>
-        <p><strong>Damage:</strong> Used for low-damage rolls (e.g. daggers, minor spells) and small healing effects.</p>
-        <p><strong>Bonus:</strong> Sometimes adds a small bonus to d20 rolls (e.g. Bless, Guidance).</p>
-      </div>
-      <div class="dice-section">
-        <h3>D6 (The Cube)</h3>
-        <p><strong>Damage:</strong> Frequently rolled for weapon damage (shortswords, handaxes) and big spells (Fireball with multiple d6s).</p>
-        <p><strong>Ability Scores:</strong> Commonly used for 4d6 drop-lowest ability score generation.</p>
-        <p><strong>Hit Dice:</strong> Wizards/Sorcerers use a d6 for HP growth.</p>
-      </div>
-      <div class="dice-section">
-        <h3>D8 (The Octahedron)</h3>
-        <p><strong>Damage:</strong> Standard for one-handed martial weapons (longswords, rapiers) and many spells.</p>
-        <p><strong>Hit Dice:</strong> Mid-tier classes (Cleric, Druid, Rogue, Bard, Monk).</p>
-      </div>
-      <div class="dice-section">
-        <h3>D10 (The Decahedron)</h3>
-        <p><strong>Damage:</strong> Heavy weapons (e.g. glaives, halberds) and potent spells (Inflict Wounds). Also used for percentile rolls (d100).</p>
-        <p><strong>Hit Dice:</strong> Fighter, Paladin, Ranger.</p>
-      </div>
-      <div class="dice-section">
-        <h3>D12 (The Dodecahedron)</h3>
-        <p><strong>Damage:</strong> Big hits like a greataxe or certain high-level effects.</p>
-        <p><strong>Hit Dice:</strong> Barbarians are the only class with a d12.</p>
-      </div>
-      <div class="dice-section">
-        <h3>D20 (The Icosahedron)</h3>
-        <p><strong>Core Mechanic:</strong> Rolled for attacks, ability checks, saving throws, and initiative. A natural 20 is a critical success, while a natural 1 is often a failure.</p>
-      </div>
-    </div>
-  </main>
-
-  <!-- Three.js and Dice Roller Script -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-  <script>
-    const floorY = -0.5;
-    const floorSize = 24;
-    const borderSize = 26;
-    const halfSize = floorSize / 2;
-    const shootingStars = [];
-    
-    // No sound effects for this version
-
-    function randomBetween(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    function spawnShootingStar() {
-      const geometry = new THREE.SphereGeometry(0.15, 8, 8);
-      const material = new THREE.MeshBasicMaterial({ 
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.8
-      });
-      const star = new THREE.Mesh(geometry, material);
-      
-      // Create a glowing trail
-      const trailLength = Math.floor(randomBetween(5, 12));
-      const trail = [];
-      
-      for (let i = 0; i < trailLength; i++) {
-        const trailPart = new THREE.Mesh(
-          new THREE.SphereGeometry(0.15 * (1 - i/trailLength), 8, 8),
-          new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.5 * (1 - i/trailLength)
-          })
-        );
-        star.add(trailPart);
-        trail.push(trailPart);
-        
-        // Position trail parts behind the star
-        trailPart.position.z = -i * 0.3;
-      }
-      
-      star.position.set(
-        randomBetween(-30, 30),
-        randomBetween(10, 40),
-        randomBetween(-200, -300)
-      );
-      
-      star.userData.velocity = new THREE.Vector3(
-        randomBetween(-1, 1),
-        randomBetween(-0.2, -0.5),
-        randomBetween(50, 80)
-      );
-      
-      star.userData.trail = trail;
-      scene.add(star);
-      shootingStars.push(star);
-    }
-
-    function updateShootingStars(delta) {
-      for (let i = shootingStars.length - 1; i >= 0; i--) {
-        const star = shootingStars[i];
-        star.position.addScaledVector(star.userData.velocity, delta);
-        
-        if (
-          star.position.z > 50 ||
-          star.position.y < -10 ||
-          star.position.x < -100 || star.position.x > 100
-        ) {
-          scene.remove(star);
-          shootingStars.splice(i, 1);
-        }
-      }
-    }
-
-    // Enhanced D10 geometry
-    function createD10Geometry() {
-      const alpha = 0.8;
-      const phi = Math.PI / 10;
-      const r = Math.sin(alpha);
-      const cy = Math.cos(alpha);
-      const top = [];
-      const bottom = [];
-      for (let i = 0; i < 5; i++) {
-        let angleTop = (2 * Math.PI * i / 5) + phi;
-        let angleBottom = (2 * Math.PI * i / 5) - phi;
-        top.push(new THREE.Vector3(r * Math.cos(angleTop), cy, r * Math.sin(angleTop)));
-        bottom.push(new THREE.Vector3(r * Math.cos(angleBottom), -cy, r * Math.sin(angleBottom)));
-      }
-      const vertices = [];
-      for (let i = 0; i < 5; i++) {
-        vertices.push(top[i].x, top[i].y, top[i].z);
-      }
-      for (let i = 0; i < 5; i++) {
-        vertices.push(bottom[i].x, bottom[i].y, bottom[i].z);
-      }
-      const indices = [];
-      for (let i = 0; i < 5; i++) {
-        let t0 = i;
-        let t1 = (i + 1) % 5;
-        let b0 = i + 5;
-        let b1 = ((i + 1) % 5) + 5;
-        indices.push(t0, b0, t1);
-        indices.push(b0, b1, t1);
-      }
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-      geometry.setIndex(indices);
-      geometry.computeVertexNormals();
-      return geometry;
-    }
-
-    let scene, camera, renderer, composer;
-    const diceTypes = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
-    const diceCounts = { d4: 0, d6: 0, d8: 0, d10: 0, d12: 0, d20: 0 };
-    const dice = [];
-    const diceColors = {
-      d4:  0x8B0000,
-      d6:  0x00008B,
-      d8:  0x4B0082,
-      d10: 0x006400,
-      d12: 0xCCCC00,
-      d20: 0xFF8C00
+<div id="root"></div>
+<script type="text/babel">
+  /** ========== LOCALSTORAGE BACKUP / RESTORE ========== */
+  function backupLocalStorage() {
+    const data = {
+      characterSheet: localStorage.getItem("characterSheet"),
+      darkMode: localStorage.getItem("darkMode")
     };
-    
-    // Enhanced geometries with better detail
-    const geometries = {};
-    
-    function initGeometries() {
-      geometries.d4 = new THREE.TetrahedronGeometry(1);
-      geometries.d6 = new THREE.BoxGeometry(1.4, 1.4, 1.4);
-      geometries.d8 = new THREE.OctahedronGeometry(1);
-      geometries.d10 = createD10Geometry();
-      geometries.d12 = new THREE.DodecahedronGeometry(1);
-      geometries.d20 = new THREE.IcosahedronGeometry(1);
-    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "character_sheet_backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
-    function createDie(type) {
-      const geometry = geometries[type];
-      const color = diceColors[type];
-      
-      // Create a metallic material with reflection
-      const material = new THREE.MeshStandardMaterial({
-        color: color,
-        metalness: 0.6,
-        roughness: 0.2,
-        envMapIntensity: 1.0
-      });
-      
-      const die = new THREE.Mesh(geometry, material);
-      
-      // Add a subtle glow
-      const glowMaterial = new THREE.MeshBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.1
-      });
-      
-      const glowMesh = new THREE.Mesh(geometry.clone().scale(1.05, 1.05, 1.05), glowMaterial);
-      die.add(glowMesh);
-      
-      // Add edges for better visibility
-      const wireframeGeometry = new THREE.EdgesGeometry(geometry);
-      const wireframeMaterial = new THREE.LineBasicMaterial({ 
-        color: 0x000000,
-        linewidth: 2 
-      });
-      const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
-      die.add(wireframe);
-      
-      // Add highlights
-      const highlightMaterial = new THREE.LineBasicMaterial({ 
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.3,
-        linewidth: 1 
-      });
-      const highlightEdges = new THREE.LineSegments(wireframeGeometry, highlightMaterial);
-      die.add(highlightEdges);
-      
-      die.rotation.set(
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2
-      );
-      
-      die.userData = {
-        type: type,
-        result: 0,
-        velocity: new THREE.Vector3(0, 0, 0),
-        angularVelocity: new THREE.Vector3(0, 0, 0),
-        isRolling: false,
-        glowMesh: glowMesh
-      };
-      
-      return die;
-    }
-
-    function addDie(type) {
-      if (diceCounts[type] < 10) {
-        diceCounts[type]++;
-        const die = createDie(type);
-        dice.push(die);
-        scene.add(die);
-        
-        // Add appear animation
-        die.scale.set(0.01, 0.01, 0.01);
-        die.userData.targetScale = new THREE.Vector3(1, 1, 1);
-        die.userData.isAppearing = true;
-        die.userData.appearProgress = 0;
-        
-        positionDice();
-        updateControls();
+  function restoreLocalStorage(event) {
+    const files = event.target.files;
+    if (!files || !files.length) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.characterSheet !== undefined) {
+          localStorage.setItem("characterSheet", data.characterSheet);
+        }
+        if (data.darkMode !== undefined) {
+          localStorage.setItem("darkMode", data.darkMode);
+        }
+        alert("LocalStorage restored. Please refresh the page.");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to restore. Invalid JSON?");
       }
-    }
-
-    function removeDie(type) {
-      if (diceCounts[type] > 0) {
-        diceCounts[type]--;
-        const index = dice.findIndex(d => d.userData.type === type);
-        if (index !== -1) {
-          const die = dice[index];
-          
-          // Immediately disable physics for this die to prevent interaction
-          die.userData.isDisappearing = true;
-          die.userData.disappearProgress = 0;
-          die.userData.isRolling = false;
-          
-          // Disable collision detection by moving out of the way temporarily
-          die.position.y = 50; // Move far away from scene
-          
-          // Remove the die from the physics simulation immediately
-          setTimeout(() => {
-            scene.remove(die);
-            // Remove from the dice array
-            dice.splice(dice.indexOf(die), 1);
-            positionDice();
-          }, 100);
-          
-          updateControls();
-        }
-      }
-    }
-
-    function positionDice() {
-      if (dice.length === 0) return;
-      
-      const spacing = 3.0;
-      const rows = Math.ceil(Math.sqrt(dice.length));
-      const cols = Math.ceil(dice.length / rows);
-      const offsetX = ((cols - 1) * spacing) / 2;
-      const offsetZ = ((rows - 1) * spacing) / 2;
-      
-      dice.forEach((die, index) => {
-        const row = Math.floor(index / cols);
-        const col = index % cols;
-        
-        // Set target position for smooth animation
-        die.userData.targetPosition = new THREE.Vector3(
-          col * spacing - offsetX,
-          1.0 + Math.random() * 0.2,
-          row * spacing - offsetZ
-        );
-        
-        // If it's a new die, set initial position
-        if (die.userData.isAppearing) {
-          die.position.copy(die.userData.targetPosition);
-        }
-        
-        const scale = 0.9 + Math.random() * 0.2;
-        die.userData.targetScale = new THREE.Vector3(scale, scale, scale);
-        
-        die.userData.targetRotation = new THREE.Euler(
-          Math.random() * Math.PI * 2,
-          Math.random() * Math.PI * 2,
-          Math.random() * Math.PI * 2
-        );
-      });
-    }
-
-    function updateControls() {
-      diceTypes.forEach(type => {
-        const control = document.querySelector(`.dice-control[data-type="${type}"] span`);
-        if (control) {
-          control.textContent = `${type.toUpperCase()}: ${diceCounts[type]}`;
-        }
-      });
-    }
-
-    function rollDice() {
-      if (dice.length === 0) return;
-      
-      const rollButton = document.getElementById('roll-button');
-      rollButton.disabled = true;
-      
-      // No sound effects
-      
-      // No camera shake
-      
-      prepareDiceForRoll();
-      
-      dice.forEach(die => {
-        die.userData.isRolling = true;
-        
-        // Determine result
-        const sides = parseInt(die.userData.type.slice(1));
-        die.userData.result = Math.floor(Math.random() * sides) + 1;
-        
-        // Enhanced physics for more dramatic rolls
-        die.userData.velocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 4,
-          Math.random() * 8 + 5,
-          (Math.random() - 0.5) * 4
-        );
-        
-        die.userData.angularVelocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 30,
-          (Math.random() - 0.5) * 30,
-          (Math.random() - 0.5) * 30
-        );
-        
-        // Add glow effect during rolling
-        die.userData.glowMesh.material.opacity = 0.3;
-      });
-      
-      // Add magical particles for dice roll
-      createMagicalParticles();
-      
-      // Extend the rolling time significantly to let dice settle completely
-      setTimeout(() => {
-        dice.forEach(die => {
-          die.userData.isRolling = false;
-          die.userData.glowMesh.material.opacity = 0.1;
-        });
-        
-        // Additional delay before showing results to ensure dice have completely settled
-        setTimeout(() => {
-          displayResults();
-          rollButton.disabled = false;
-        }, 1500);
-      }, 5000);
-    }
-    
-    // Simplified particle effect with minimal particles
-    function createMagicalParticles() {
-      // Reduced particle count for subtler effect
-      const particleCount = 20;
-      const particles = new THREE.Group();
-      
-      for (let i = 0; i < particleCount; i++) {
-        const size = randomBetween(0.03, 0.08);
-        const particle = new THREE.Mesh(
-          new THREE.SphereGeometry(size, 6, 6),
-          new THREE.MeshBasicMaterial({
-            color: 0xcccccc,
-            transparent: true,
-            opacity: 0.3
-          })
-        );
-        
-        // Random position closer to the dice
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.random() * Math.PI;
-        const radius = randomBetween(2, 4);
-        
-        particle.position.set(
-          radius * Math.sin(phi) * Math.cos(theta),
-          radius * Math.cos(phi) + 2,
-          radius * Math.sin(phi) * Math.sin(theta)
-        );
-        
-        particles.add(particle);
-      }
-      
-      scene.add(particles);
-      
-      // Remove particles after a short animation
-      setTimeout(() => {
-        scene.remove(particles);
-      }, 1000);
-    }
-
-    function prepareDiceForRoll() {
-      if (dice.length === 0) return;
-      
-      const spacing = 3.0;
-      const rows = Math.ceil(Math.sqrt(dice.length));
-      const cols = Math.ceil(dice.length / rows);
-      const offsetX = ((cols - 1) * spacing) / 2;
-      const offsetZ = ((rows - 1) * spacing) / 2;
-      
-      dice.forEach((die, index) => {
-        const row = Math.floor(index / cols);
-        const col = index % cols;
-        
-        die.position.set(
-          col * spacing - offsetX + (Math.random() * 0.5 - 0.25),
-          4 + Math.random() * 2,
-          row * spacing - offsetZ + (Math.random() * 0.5 - 0.25)
-        );
-        
-        die.rotation.set(
-          Math.random() * Math.PI * 2,
-          Math.random() * Math.PI * 2,
-          Math.random() * Math.PI * 2
-        );
-      });
-    }
-
-    // Enhanced physics for more realistic dice behavior
-    function updateDicePhysics(delta) {
-      const gravity = new THREE.Vector3(0, -9.8, 0);
-      
-      dice.forEach(die => {
-        // Skip physics for dice marked for removal
-        if (die.userData.isDisappearing) {
-          return;
-        }
-        
-        // Handle appearing animation
-        if (die.userData.isAppearing) {
-          die.userData.appearProgress += delta * 5;
-          if (die.userData.appearProgress >= 1) {
-            die.userData.isAppearing = false;
-            die.userData.appearProgress = 1;
-          }
-          
-          const progress = easeOutElastic(die.userData.appearProgress);
-          die.scale.lerpVectors(
-            new THREE.Vector3(0.01, 0.01, 0.01),
-            die.userData.targetScale,
-            progress
-          );
-          return;
-        }
-        
-        // Smooth position/rotation when not rolling
-        if (!die.userData.isRolling && die.userData.targetPosition) {
-          die.position.lerp(die.userData.targetPosition, delta * 5);
-          
-          // Convert Euler to Quaternion for smoother rotation
-          if (die.userData.targetRotation) {
-            const targetQuaternion = new THREE.Quaternion().setFromEuler(die.userData.targetRotation);
-            die.quaternion.slerp(targetQuaternion, delta * 3);
-          }
-          return;
-        }
-        
-        if (!die.userData.isRolling) return;
-        
-        // Update position and rotation
-        die.position.addScaledVector(die.userData.velocity, delta);
-        die.rotation.x += die.userData.angularVelocity.x * delta;
-        die.rotation.y += die.userData.angularVelocity.y * delta;
-        die.rotation.z += die.userData.angularVelocity.z * delta;
-        
-        // Apply gravity and damping
-        die.userData.velocity.addScaledVector(gravity, delta);
-        // More aggressive damping for faster settling
-        die.userData.velocity.multiplyScalar(0.92);
-        die.userData.angularVelocity.multiplyScalar(0.92);
-        
-        const dieRadius = 0.8;
-        
-        // Floor collision
-        if (die.position.y - dieRadius < floorY) {
-          die.position.y = floorY + dieRadius;
-          die.userData.velocity.y *= -0.6;
-          die.userData.velocity.x *= 0.8;
-          die.userData.velocity.z *= 0.8;
-          die.userData.angularVelocity.x += (Math.random() - 0.5) * 8;
-          die.userData.angularVelocity.z += (Math.random() - 0.5) * 8;
-          
-          // Add impact effect
-          if (die.userData.velocity.length() > 2) {
-            createImpactEffect(die.position.x, floorY, die.position.z);
-          }
-        }
-        
-        // Wall collisions with improved physics
-        if (die.position.x < -halfSize) {
-          die.position.x = -halfSize;
-          die.userData.velocity.x *= -0.6;
-          die.userData.angularVelocity.x += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.y += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.z += (Math.random() - 0.5) * 12;
-        }
-        if (die.position.x > halfSize) {
-          die.position.x = halfSize;
-          die.userData.velocity.x *= -0.6;
-          die.userData.angularVelocity.x += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.y += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.z += (Math.random() - 0.5) * 12;
-        }
-        if (die.position.z < -halfSize) {
-          die.position.z = -halfSize;
-          die.userData.velocity.z *= -0.6;
-          die.userData.angularVelocity.x += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.y += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.z += (Math.random() - 0.5) * 12;
-        }
-        if (die.position.z > halfSize) {
-          die.position.z = halfSize;
-          die.userData.velocity.z *= -0.6;
-          die.userData.angularVelocity.x += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.y += (Math.random() - 0.5) * 12;
-          die.userData.angularVelocity.z += (Math.random() - 0.5) * 12;
-        }
-      });
-      
-      // Dice collision detection and response
-      for (let i = 0; i < dice.length; i++) {
-        // Skip dice that are not rolling or are disappearing
-        if (!dice[i].userData.isRolling || dice[i].userData.isDisappearing) continue;
-        
-        for (let j = i + 1; j < dice.length; j++) {
-          // Skip dice that are not rolling or are disappearing
-          if (!dice[j].userData.isRolling || dice[j].userData.isDisappearing) continue;
-          
-          const die1 = dice[i];
-          const die2 = dice[j];
-          
-          const dx = die2.position.x - die1.position.x;
-          const dy = die2.position.y - die1.position.y;
-          const dz = die2.position.z - die1.position.z;
-          const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          const minDist = 1.8;
-          
-          if (distance < minDist) {
-            // Create collision effect
-            if (die1.userData.velocity.length() > 1 || die2.userData.velocity.length() > 1) {
-              createCollisionEffect(
-                (die1.position.x + die2.position.x) / 2,
-                (die1.position.y + die2.position.y) / 2,
-                (die1.position.z + die2.position.z) / 2
-              );
-            }
-            
-            const nx = dx / distance;
-            const ny = dy / distance;
-            const nz = dz / distance;
-            const overlap = (minDist - distance) / 2;
-            
-            die1.position.x -= nx * overlap;
-            die1.position.y -= ny * overlap;
-            die1.position.z -= nz * overlap;
-            die2.position.x += nx * overlap;
-            die2.position.y += ny * overlap;
-            die2.position.z += nz * overlap;
-            
-            const dot1 = die1.userData.velocity.x * nx + die1.userData.velocity.y * ny + die1.userData.velocity.z * nz;
-            const dot2 = die2.userData.velocity.x * nx + die2.userData.velocity.y * ny + die2.userData.velocity.z * nz;
-            
-            const bounce = 0.8;
-            die1.userData.velocity.x += (dot2 - dot1) * nx * bounce;
-            die1.userData.velocity.y += (dot2 - dot1) * ny * bounce;
-            die1.userData.velocity.z += (dot2 - dot1) * nz * bounce;
-            die2.userData.velocity.x += (dot1 - dot2) * nx * bounce;
-            die2.userData.velocity.y += (dot1 - dot2) * ny * bounce;
-            die2.userData.velocity.z += (dot1 - dot2) * nz * bounce;
-            
-            const spinAmount = 8.0;
-            die1.userData.angularVelocity.x += (Math.random() - 0.5) * spinAmount;
-            die1.userData.angularVelocity.y += (Math.random() - 0.5) * spinAmount;
-            die1.userData.angularVelocity.z += (Math.random() - 0.5) * spinAmount;
-            die2.userData.angularVelocity.x += (Math.random() - 0.5) * spinAmount;
-            die2.userData.angularVelocity.y += (Math.random() - 0.5) * spinAmount;
-            die2.userData.angularVelocity.z += (Math.random() - 0.5) * spinAmount;
-          }
-        }
-      }
-      
-      // Make dice very sensitive to stabilizing
-      dice.forEach(die => {
-        // More strict settling criteria for stable final positions
-        if (!die.userData.isRolling &&
-            die.userData.velocity.length() < 0.03 &&
-            die.userData.angularVelocity.length() < 0.03) {
-          const type = die.userData.type;
-          const euler = new THREE.Euler().setFromQuaternion(die.quaternion);
-          
-          if (type === 'd6') {
-            euler.x = Math.round(euler.x / (Math.PI / 2)) * (Math.PI / 2);
-            euler.z = Math.round(euler.z / (Math.PI / 2)) * (Math.PI / 2);
-          } else {
-            euler.x = Math.round(euler.x / (Math.PI / 4)) * (Math.PI / 4);
-            euler.y = Math.round(euler.y / (Math.PI / 4)) * (Math.PI / 4);
-            euler.z = Math.round(euler.z / (Math.PI / 4)) * (Math.PI / 4);
-          }
-          
-          die.quaternion.setFromEuler(euler);
-          die.userData.velocity.set(0, 0, 0);
-          die.userData.angularVelocity.set(0, 0, 0);
-        }
-      });
-    }
-    
-    // Simplified minimal impact effect
-    function createImpactEffect(x, y, z) {
-      // Just a small visual indicator with minimal particles
-      const particle = new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 4, 4),
-        new THREE.MeshBasicMaterial({
-          color: 0xDDDDDD,
-          transparent: true,
-          opacity: 0.3
-        })
-      );
-      
-      particle.position.set(x, y + 0.1, z);
-      scene.add(particle);
-      
-      // Fade out and remove
-      setTimeout(() => {
-        scene.remove(particle);
-      }, 300);
-    }
-    
-    // Simplified collision effect
-    function createCollisionEffect(x, y, z) {
-      // Minimal visual indicator
-      const particle = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08, 4, 4),
-        new THREE.MeshBasicMaterial({
-          color: 0xAAAAAA,
-          transparent: true,
-          opacity: 0.2
-        })
-      );
-      
-      particle.position.set(x, y, z);
-      scene.add(particle);
-      
-      // Remove after brief animation
-      setTimeout(() => {
-        scene.remove(particle);
-      }, 200);
-    }
-
-    // Enhanced results display with animations
-    function displayResults() {
-      const rollLog = document.getElementById('roll-log');
-      const resultsByType = {};
-      let totalSum = 0;
-      let hasCriticalSuccess = false;
-      let hasCriticalFailure = false;
-      
-      dice.forEach(die => {
-        const type = die.userData.type;
-        const result = die.userData.result;
-        
-        if (!resultsByType[type]) {
-          resultsByType[type] = [];
-        }
-        
-        resultsByType[type].push(result);
-        totalSum += result;
-        
-        // Check for critical hits (nat 20) or fumbles (nat 1)
-        if (type === 'd20' && result === 20) {
-          hasCriticalSuccess = true;
-          die.userData.glowMesh.material.color.set(0xFFD700);
-          die.userData.glowMesh.material.opacity = 0.4;
-          die.userData.isCritical = true;
-          
-          // No sound effects
-        } 
-        else if (type === 'd20' && result === 1) {
-          hasCriticalFailure = true;
-          die.userData.glowMesh.material.color.set(0xFF0000);
-          die.userData.glowMesh.material.opacity = 0.4;
-          die.userData.isCritical = true;
-          
-          // No sound effects
-        }
-      });
-      
-      let resultHTML = '';
-      
-      for (const type in resultsByType) {
-        if (resultsByType[type].length > 0) {
-          resultHTML += `<span class="${type}-result">${type.toUpperCase()}: [${resultsByType[type].join(', ')}]</span> `;
-        }
-      }
-      
-      resultHTML += `<span class="total-result">Total: ${totalSum}</span>`;
-      
-      const logEntry = document.createElement('li');
-      logEntry.innerHTML = resultHTML;
-      
-      // Add animation class based on roll
-      if (hasCriticalSuccess) {
-        logEntry.classList.add('critical-hit');
-      } else if (hasCriticalFailure) {
-        logEntry.classList.add('critical-fumble');
-      }
-      
-      rollLog.insertBefore(logEntry, rollLog.firstChild);
-      
-      // Limit log entries
-      while (rollLog.children.length > 10) {
-        rollLog.removeChild(rollLog.lastChild);
-      }
-    }
-
-    function copyLog() {
-      const rollLog = document.getElementById('roll-log');
-      let logText = '';
-      
-      for (let i = 0; i < rollLog.children.length; i++) {
-        logText += rollLog.children[i].textContent.trim() + '\n';
-      }
-      
-      navigator.clipboard.writeText(logText)
-        .then(() => { 
-          // Create toast notification instead of alert
-          const toast = document.createElement('div');
-          toast.style.position = 'fixed';
-          toast.style.bottom = '20px';
-          toast.style.left = '50%';
-          toast.style.transform = 'translateX(-50%)';
-          toast.style.background = 'rgba(0, 0, 0, 0.8)';
-          toast.style.color = '#fff';
-          toast.style.padding = '10px 20px';
-          toast.style.borderRadius = '4px';
-          toast.style.zIndex = 1000;
-          toast.textContent = 'Roll log copied to your spellbook!';
-          
-          document.body.appendChild(toast);
-          
-          setTimeout(() => {
-            toast.style.opacity = 0;
-            toast.style.transition = 'opacity 0.5s ease';
-            setTimeout(() => {
-              document.body.removeChild(toast);
-            }, 500);
-          }, 2000);
-        })
-        .catch(err => { console.error('Failed to copy log:', err); });
-    }
-    
-    // Camera shake disabled
-    let cameraShake = {
-      intensity: 0,
-      duration: 0,
-      progress: 0,
-      originalPosition: null
     };
-    
-    function updateCameraShake(delta) {
-      // Do nothing - camera shake disabled
-    }
-    
-    // Easing functions for animations
-    function easeOutElastic(x) {
-      const c4 = (2 * Math.PI) / 3;
-      
-      return x === 0
-        ? 0
-        : x === 1
-        ? 1
-        : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
-    }
+    reader.readAsText(file);
+  }
 
-    function initScene() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000);
-      
-      camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      
-      canvasContainer.appendChild(renderer.domElement);
-      
-      // Improved lighting setup
-      const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-      scene.add(ambientLight);
-      
-      const mainLight = new THREE.PointLight(0xffffff, 1.2, 50);
-      mainLight.position.set(10, 15, 10);
-      mainLight.castShadow = true;
-      mainLight.shadow.mapSize.width = 1024;
-      mainLight.shadow.mapSize.height = 1024;
-      mainLight.shadow.camera.near = 0.5;
-      mainLight.shadow.camera.far = 50;
-      scene.add(mainLight);
-      
-      const fillLight = new THREE.PointLight(0x8844ff, 0.5, 40);
-      fillLight.position.set(-15, 10, -10);
-      scene.add(fillLight);
-      
-      const rimLight = new THREE.PointLight(0xff4422, 0.5, 40);
-      rimLight.position.set(0, 5, -20);
-      scene.add(rimLight);
-      
-      camera.position.z = 18;
-      camera.position.y = 10;
-      camera.lookAt(0, 0, 0);
-      
-      // Enhanced star field
-      function createStars() {
-        const starCount = 2000;
-        const starGeometry = new THREE.BufferGeometry();
-        const starVertices = [];
-        const starSizes = [];
-        const starColors = [];
-        
-        for (let i = 0; i < starCount; i++) {
-          const x = Math.random() * 2000 - 1000;
-          const y = Math.random() * 2000 - 1000;
-          const z = Math.random() * 2000 - 1000;
-          starVertices.push(x, y, z);
-          
-          // Varied star sizes
-          starSizes.push(Math.random() * 1.5 + 0.5);
-          
-          // Varied star colors
-          const hue = Math.random();
-          const saturation = Math.random() * 0.3;
-          const lightness = 0.9 + Math.random() * 0.1;
-          const color = new THREE.Color().setHSL(hue, saturation, lightness);
-          starColors.push(color.r, color.g, color.b);
-        }
-        
-        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-        starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
-        starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
-        
-        const starMaterial = new THREE.PointsMaterial({
-          size: 2,
-          sizeAttenuation: true,
-          vertexColors: true,
-          transparent: true,
-          opacity: 0.8
-        });
-        
-        const stars = new THREE.Points(starGeometry, starMaterial);
-        scene.add(stars);
-      }
-      
-      createStars();
-      
-      // Magical glow at the bottom of the scene
-      const glowGeometry = new THREE.PlaneGeometry(100, 100);
-      const glowMaterial = new THREE.MeshBasicMaterial({
-        color: 0x220000,
-        transparent: true,
-        opacity: 0.2,
-        side: THREE.DoubleSide
-      });
-      
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-      glow.rotation.x = -Math.PI / 2;
-      glow.position.y = floorY - 0.1;
-      scene.add(glow);
-      
-      // Enhanced table surface
-      const tableTexture = new THREE.TextureLoader().load("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==");
-      
-      const redPlaneMaterial = new THREE.MeshStandardMaterial({
-        color: 0x660000,
-        roughness: 0.7,
-        metalness: 0.3,
-        emissive: 0x330000,
-        emissiveIntensity: 0.2
-      });
-      
-      const redPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(borderSize, borderSize),
-        redPlaneMaterial
-      );
-      redPlane.rotation.x = -Math.PI / 2;
-      redPlane.position.y = floorY;
-      redPlane.receiveShadow = true;
-      scene.add(redPlane);
-      
-      const blackPlaneMaterial = new THREE.MeshStandardMaterial({
-        color: 0x000000,
-        roughness: 0.9,
-        metalness: 0.1,
-        emissive: 0x000000
-      });
-      
-      const blackPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(floorSize, floorSize),
-        blackPlaneMaterial
-      );
-      blackPlane.rotation.x = -Math.PI / 2;
-      blackPlane.position.y = floorY + 0.01;
-      blackPlane.receiveShadow = true;
-      scene.add(blackPlane);
-      
-      // Add a subtle grid to the black plane
-      const gridSize = floorSize - 2;
-      const gridDivisions = 10;
-      const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x660000, 0x330000);
-      gridHelper.position.y = floorY + 0.02;
-      scene.add(gridHelper);
-      
-      // Add magical runes around the border
-      const runeCount = 12;
-      const runeRadius = borderSize / 2 - 0.5;
-      
-      for (let i = 0; i < runeCount; i++) {
-        const angle = (i / runeCount) * Math.PI * 2;
-        const x = Math.cos(angle) * runeRadius;
-        const z = Math.sin(angle) * runeRadius;
-        
-        const runeGeometry = new THREE.CircleGeometry(0.3, 5);
-        const runeMaterial = new THREE.MeshBasicMaterial({
-          color: 0x880000,
-          transparent: true,
-          opacity: 0.7
-        });
-        
-        const rune = new THREE.Mesh(runeGeometry, runeMaterial);
-        rune.rotation.x = -Math.PI / 2;
-        rune.position.set(x, floorY + 0.03, z);
-        
-        rune.userData = {
-          originalOpacity: 0.7,
-          pulseRate: 0.5 + Math.random() * 1.5,
-          pulsePhase: Math.random() * Math.PI * 2
-        };
-        
-        scene.add(rune);
-      }
-    }
-    
-    // Animate the magical runes
-    function updateRunes(time) {
-      scene.children.forEach(child => {
-        if (child.geometry && child.geometry.type === "CircleGeometry" && child.userData.pulseRate) {
-          child.material.opacity = child.userData.originalOpacity * 
-            (0.6 + 0.4 * Math.sin(time * child.userData.pulseRate + child.userData.pulsePhase));
-          
-          if (Math.random() < 0.005) {
-            child.material.color.setHSL(Math.random() * 0.1, 0.8, 0.5);
-          }
-        }
-      });
-    }
+  /** ========== DARK MODE TOGGLE ========== */
+  function DarkModeToggle() {
+    const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem("darkMode") === "true");
 
-    let canvasContainer;
-    let isInitialized = false;
-    
-    window.addEventListener('load', function() {
-      if (typeof THREE === 'undefined') {
-        console.error('Three.js failed to load. Check your internet connection or the CDN link.');
-        return;
-      }
-      
-      canvasContainer = document.getElementById('canvas-container');
-      
-      // Initialize geometries
-      initGeometries();
-      
-      // Initialize scene
-      initScene();
-      
-      // No sound initialization
-      
-      // Add event listeners for buttons
-      document.querySelectorAll('.dice-control .add').forEach(button => {
-        button.addEventListener('click', function() {
-          const type = this.parentElement.dataset.type;
-          addDie(type);
-        });
-      });
-      
-      document.querySelectorAll('.dice-control .remove').forEach(button => {
-        button.addEventListener('click', function() {
-          const type = this.parentElement.dataset.type;
-          removeDie(type);
-        });
-      });
-      
-      document.getElementById('roll-button').addEventListener('click', rollDice);
-      document.getElementById('copy-log-button').addEventListener('click', copyLog);
-      
-      // Add initial dice set
-      addDie('d4');
-      addDie('d6');
-      addDie('d8');
-      addDie('d10');
-      addDie('d12');
-      addDie('d20');
-      
-      // Animation loop
-      let lastTime = 0;
-      function animate(time) {
-        requestAnimationFrame(animate);
-        
-        const delta = Math.min((time - lastTime) / 1000, 0.1);
-        lastTime = time;
-        
-        if (Math.random() < 0.005) {
-          const starCount = Math.floor(Math.random() * 3) + 1;
-          for (let i = 0; i < starCount; i++) {
-            spawnShootingStar();
-          }
+    React.useEffect(() => {
+      if (darkMode) document.body.classList.add("dark");
+      else document.body.classList.remove("dark");
+      localStorage.setItem("darkMode", darkMode);
+    }, [darkMode]);
+
+    return (
+      <button className="px-3 py-1 btn-dnd rounded" onClick={() => setDarkMode(!darkMode)}>
+        {darkMode ? "Light Mode" : "Dark Mode"}
+      </button>
+    );
+  }
+
+  /** ========== ATTACKS & SPELLS ROW COMPONENT ========== */
+  function AttackSpellRow({ index, row, onChangeRow, onRemoveRow }) {
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      onChangeRow(index, { ...row, [name]: value });
+    };
+
+    return (
+      <tr>
+        <td className="border p-1">
+          <input
+            type="text"
+            name="name"
+            value={row.name}
+            onChange={handleChange}
+            className="border p-1 w-full"
+          />
+        </td>
+        <td className="border p-1">
+          <input
+            type="text"
+            name="atkBonusOrDC"
+            value={row.atkBonusOrDC}
+            onChange={handleChange}
+            className="border p-1 w-full"
+          />
+        </td>
+        <td className="border p-1">
+          <input
+            type="text"
+            name="damageType"
+            value={row.damageType}
+            onChange={handleChange}
+            className="border p-1 w-full"
+          />
+        </td>
+        <td className="border p-1">
+          <input
+            type="text"
+            name="notes"
+            value={row.notes}
+            onChange={handleChange}
+            className="border p-1 w-full"
+          />
+        </td>
+        <td className="border p-1 text-center">
+          <button
+            className="px-2 py-1 btn-dnd rounded text-sm"
+            onClick={() => onRemoveRow(index)}
+          >
+            X
+          </button>
+        </td>
+      </tr>
+    );
+  }
+
+  /** ========== CANTRIP / BASIC SKILLS ROW COMPONENT ========== */
+  function CantripRow({ index, row, onChangeRow, onRemoveRow }) {
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      onChangeRow(index, { ...row, [name]: value });
+    };
+
+    return (
+      <tr>
+        <td className="border p-1">
+          <input
+            type="text"
+            name="name"
+            value={row.name}
+            onChange={handleChange}
+            className="border p-1 w-full"
+          />
+        </td>
+        <td className="border p-1">
+          <input
+            type="text"
+            name="notes"
+            value={row.notes}
+            onChange={handleChange}
+            className="border p-1 w-full"
+          />
+        </td>
+        <td className="border p-1 text-center">
+          <button
+            className="px-2 py-1 btn-dnd rounded text-sm"
+            onClick={() => onRemoveRow(index)}
+          >
+            X
+          </button>
+        </td>
+      </tr>
+    );
+  }
+
+  /** ========== DEFAULT SHEET DATA ========== */
+  const defaultSheet = {
+    characterName: "",
+    levelName: "",
+    armorClass: "",
+    hitPoints: "",
+    proficiencyBonus: "",
+    heroicInspiration: "",
+    deathSaveSuccesses: "",
+    deathSaveFailures: "",
+    strengthScore: "", strengthMod: "", strengthSave: "",
+    dexterityScore: "", dexterityMod: "", dexteritySave: "",
+    constitutionScore: "", constitutionMod: "", constitutionSave: "",
+    intelligenceScore: "", intelligenceMod: "", intelligenceSave: "",
+    wisdomScore: "", wisdomMod: "", wisdomSave: "",
+    charismaScore: "", charismaMod: "", charismaSave: "",
+    initiative: "",
+    speed: "",
+    size: "",
+    passivePerception: "",
+    hitDice: "",
+    tempSpent: "",
+    tools: "",
+    languages: "",
+    armorTraining: "",
+    background: "",
+    feats: "",
+    classFeatures: "",
+    speciesTraits: "",
+    shields: "",
+    castingTime: "",
+    concentrationRitual: "",
+    currency: "",
+    animalHandling: "",
+    insight: "",
+    medicine: "",
+    perception: "",
+    survival: "",
+    deception: "",
+    intimidation: "",
+    performance: "",
+    persuasion: "",
+    acrobatics: "",
+    sleightOfHand: "",
+    stealth: "",
+    athletics: "",
+    arcana: "",
+    history: "",
+    investigation: "",
+    nature: "",
+    religion: "",
+    attacksAndSpells: [],
+    cantrips: [],
+    /** Newly added fields for completeness */
+    playerName: "",
+    alignment: "",
+    experiencePoints: "",
+    personalityTraits: "",
+    ideals: "",
+    bonds: "",
+    flaws: ""
+  };
+
+  /** ========== MAIN CHARACTER SHEET COMPONENT ========== */
+  function CharacterSheet() {
+    const [sheetData, setSheetData] = React.useState(() => {
+      const saved = localStorage.getItem("characterSheet");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return {
+            ...defaultSheet,
+            ...parsed,
+            attacksAndSpells: parsed.attacksAndSpells || [],
+            cantrips: parsed.cantrips || []
+          };
+        } catch (err) {
+          console.error("Error parsing saved sheet data:", err);
+          return defaultSheet;
         }
-        
-        // Update physics and effects
-        updateDicePhysics(delta);
-        updateShootingStars(delta);
-        updateCameraShake(delta);
-        updateRunes(time * 0.001);
-        
-        // Render the scene
-        renderer.render(scene, camera);
       }
-      
-      animate(0);
-      
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        camera.aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
-      });
-      
-      isInitialized = true;
+      return defaultSheet;
     });
-  </script>
+
+    React.useEffect(() => {
+      localStorage.setItem("characterSheet", JSON.stringify(sheetData));
+    }, [sheetData]);
+
+    function handleChange(e) {
+      const { name, value } = e.target;
+      setSheetData((prev) => ({ ...prev, [name]: value }));
+    }
+
+    // Functions for Attacks & Spells
+    function addAttackSpellRow() {
+      setSheetData((prev) => ({
+        ...prev,
+        attacksAndSpells: [
+          ...prev.attacksAndSpells,
+          { name: "", atkBonusOrDC: "", damageType: "", notes: "" }
+        ]
+      }));
+    }
+    function updateAttackSpellRow(index, updatedRow) {
+      setSheetData((prev) => {
+        const copy = [...(prev.attacksAndSpells || [])];
+        copy[index] = updatedRow;
+        return { ...prev, attacksAndSpells: copy };
+      });
+    }
+    function removeAttackSpellRow(index) {
+      setSheetData((prev) => {
+        const copy = [...(prev.attacksAndSpells || [])];
+        copy.splice(index, 1);
+        return { ...prev, attacksAndSpells: copy };
+      });
+    }
+
+    // Functions for Cantrips / Basic Skills
+    function addCantripRow() {
+      setSheetData((prev) => ({
+        ...prev,
+        cantrips: [...prev.cantrips, { name: "", notes: "" }]
+      }));
+    }
+    function updateCantripRow(index, updatedRow) {
+      setSheetData((prev) => {
+        const copy = [...(prev.cantrips || [])];
+        copy[index] = updatedRow;
+        return { ...prev, cantrips: copy };
+      });
+    }
+    function removeCantripRow(index) {
+      setSheetData((prev) => {
+        const copy = [...(prev.cantrips || [])];
+        copy.splice(index, 1);
+        return { ...prev, cantrips: copy };
+      });
+    }
+
+    function copyForPrompt() {
+      const s = sheetData;
+      const textSummary = `
+D&D 5e Character Sheet
+
+Player Name: ${s.playerName}
+Name: ${s.characterName}
+Level: ${s.levelName}
+Alignment: ${s.alignment}
+Experience Points: ${s.experiencePoints}
+
+Armor Class: ${s.armorClass}
+Hit Points: ${s.hitPoints}
+Proficiency Bonus: ${s.proficiencyBonus}
+Heroic Inspiration: ${s.heroicInspiration}
+
+Death Saves:
+  - Successes: ${s.deathSaveSuccesses}
+  - Failures:  ${s.deathSaveFailures}
+
+Abilities & Saving Throws:
+  - STR: ${s.strengthScore} (mod ${s.strengthMod}), Save: ${s.strengthSave}
+  - DEX: ${s.dexterityScore} (mod ${s.dexterityMod}), Save: ${s.dexteritySave}
+  - CON: ${s.constitutionScore} (mod ${s.constitutionMod}), Save: ${s.constitutionSave}
+  - INT: ${s.intelligenceScore} (mod ${s.intelligenceMod}), Save: ${s.intelligenceSave}
+  - WIS: ${s.wisdomScore} (mod ${s.wisdomMod}), Save: ${s.wisdomSave}
+  - CHA: ${s.charismaScore} (mod ${s.charismaMod}), Save: ${s.charismaSave}
+
+Initiative: ${s.initiative}
+Speed: ${s.speed}
+Size: ${s.size}
+Passive Perception: ${s.passivePerception}
+Hit Dice: ${s.hitDice}
+Temp Spent (HP): ${s.tempSpent}
+
+Tools: ${s.tools}
+Languages: ${s.languages}
+Armor Training: ${s.armorTraining}
+Background: ${s.background}
+
+Feats: ${s.feats}
+Class Features: ${s.classFeatures}
+Species Traits: ${s.speciesTraits}
+Shields: ${s.shields}
+Casting Time: ${s.castingTime}
+Concentration/Ritual & Materials: ${s.concentrationRitual}
+Currency: ${s.currency}
+
+Skills:
+  - Animal Handling: ${s.animalHandling}
+  - Insight: ${s.insight}
+  - Medicine: ${s.medicine}
+  - Perception: ${s.perception}
+  - Survival: ${s.survival}
+  - Deception: ${s.deception}
+  - Intimidation: ${s.intimidation}
+  - Performance: ${s.performance}
+  - Persuasion: ${s.persuasion}
+  - Acrobatics: ${s.acrobatics}
+  - Sleight of Hand: ${s.sleightOfHand}
+  - Stealth: ${s.stealth}
+  - Athletics: ${s.athletics}
+  - Arcana: ${s.arcana}
+  - History: ${s.history}
+  - Investigation: ${s.investigation}
+  - Nature: ${s.nature}
+  - Religion: ${s.religion}
+
+Attacks & Spells:
+${(s.attacksAndSpells || [])
+  .map(
+    (row, i) => `
+  ${i + 1}) Name: ${row.name}
+     Atk Bonus/DC: ${row.atkBonusOrDC}
+     Damage & Type: ${row.damageType}
+     Notes: ${row.notes}
+`
+  )
+  .join("")}
+
+Cantrips / Basic Skills:
+${(s.cantrips || [])
+  .map(
+    (row, i) => `
+  ${i + 1}) Name: ${row.name}
+     Notes: ${row.notes}
+`
+  )
+  .join("")}
+
+Personality Traits: ${s.personalityTraits}
+Ideals: ${s.ideals}
+Bonds: ${s.bonds}
+Flaws: ${s.flaws}
+      `.trim();
+
+      navigator.clipboard
+        .writeText(textSummary)
+        .then(() => alert("Character sheet copied to clipboard!"))
+        .catch(() => alert("Failed to copy."));
+    }
+
+    return (
+      <div className="sheet-container">
+        <h1 className="text-2xl font-bold mb-4 text-center text-amber-400">
+          D&D 5e Character Sheet
+        </h1>
+        <div className="flex flex-wrap gap-2 justify-center mb-4">
+          <button className="px-3 py-1 btn-dnd rounded" onClick={copyForPrompt}>
+            Copy for Prompt
+          </button>
+        </div>
+
+        {/* Basic Info */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">Player Name</label>
+            <input
+              type="text"
+              name="playerName"
+              value={sheetData.playerName}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Character Name
+            </label>
+            <input
+              type="text"
+              name="characterName"
+              value={sheetData.characterName}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Level (e.g. 5 / Name)
+            </label>
+            <input
+              type="text"
+              name="levelName"
+              value={sheetData.levelName}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Alignment
+            </label>
+            <input
+              type="text"
+              name="alignment"
+              value={sheetData.alignment}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="e.g., Lawful Good"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Experience Points
+            </label>
+            <input
+              type="text"
+              name="experiencePoints"
+              value={sheetData.experiencePoints}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+        </div>
+
+        {/* More Basic Info */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Armor Class
+            </label>
+            <input
+              type="text"
+              name="armorClass"
+              value={sheetData.armorClass}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Hit Points
+            </label>
+            <input
+              type="text"
+              name="hitPoints"
+              value={sheetData.hitPoints}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+        </div>
+
+        {/* Row 2 */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Proficiency Bonus
+            </label>
+            <input
+              type="text"
+              name="proficiencyBonus"
+              value={sheetData.proficiencyBonus}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Heroic Inspiration
+            </label>
+            <input
+              type="text"
+              name="heroicInspiration"
+              value={sheetData.heroicInspiration}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Temp Spent (Temp HP)
+            </label>
+            <input
+              type="text"
+              name="tempSpent"
+              value={sheetData.tempSpent}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+        </div>
+
+        {/* Death Saves */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">Death Saves</h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Successes
+            </label>
+            <input
+              type="text"
+              name="deathSaveSuccesses"
+              value={sheetData.deathSaveSuccesses}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="0-3"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Failures
+            </label>
+            <input
+              type="text"
+              name="deathSaveFailures"
+              value={sheetData.deathSaveFailures}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="0-3"
+            />
+          </div>
+        </div>
+
+        {/* Abilities & Saving Throws */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          Abilities & Saving Throws
+        </h2>
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          {/* Strength */}
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Strength Score
+            </label>
+            <input
+              type="text"
+              name="strengthScore"
+              value={sheetData.strengthScore}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Strength Mod
+            </label>
+            <input
+              type="text"
+              name="strengthMod"
+              value={sheetData.strengthMod}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Strength Save
+            </label>
+            <input
+              type="text"
+              name="strengthSave"
+              value={sheetData.strengthSave}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          {/* Dexterity */}
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Dexterity Score
+            </label>
+            <input
+              type="text"
+              name="dexterityScore"
+              value={sheetData.dexterityScore}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Dexterity Mod
+            </label>
+            <input
+              type="text"
+              name="dexterityMod"
+              value={sheetData.dexterityMod}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Dexterity Save
+            </label>
+            <input
+              type="text"
+              name="dexteritySave"
+              value={sheetData.dexteritySave}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          {/* Constitution */}
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Constitution Score
+            </label>
+            <input
+              type="text"
+              name="constitutionScore"
+              value={sheetData.constitutionScore}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Constitution Mod
+            </label>
+            <input
+              type="text"
+              name="constitutionMod"
+              value={sheetData.constitutionMod}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Constitution Save
+            </label>
+            <input
+              type="text"
+              name="constitutionSave"
+              value={sheetData.constitutionSave}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          {/* Intelligence */}
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Intelligence Score
+            </label>
+            <input
+              type="text"
+              name="intelligenceScore"
+              value={sheetData.intelligenceScore}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Intelligence Mod
+            </label>
+            <input
+              type="text"
+              name="intelligenceMod"
+              value={sheetData.intelligenceMod}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Intelligence Save
+            </label>
+            <input
+              type="text"
+              name="intelligenceSave"
+              value={sheetData.intelligenceSave}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          {/* Wisdom */}
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Wisdom Score
+            </label>
+            <input
+              type="text"
+              name="wisdomScore"
+              value={sheetData.wisdomScore}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Wisdom Mod
+            </label>
+            <input
+              type="text"
+              name="wisdomMod"
+              value={sheetData.wisdomMod}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Wisdom Save
+            </label>
+            <input
+              type="text"
+              name="wisdomSave"
+              value={sheetData.wisdomSave}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          {/* Charisma */}
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Charisma Score
+            </label>
+            <input
+              type="text"
+              name="charismaScore"
+              value={sheetData.charismaScore}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Charisma Mod
+            </label>
+            <input
+              type="text"
+              name="charismaMod"
+              value={sheetData.charismaMod}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+            <label className="block text-sm font-medium text-amber-400 mt-2">
+              Charisma Save
+            </label>
+            <input
+              type="text"
+              name="charismaSave"
+              value={sheetData.charismaSave}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+        </div>
+
+        {/* Additional Stats */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          Additional Stats
+        </h2>
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Initiative
+            </label>
+            <input
+              type="text"
+              name="initiative"
+              value={sheetData.initiative}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Speed
+            </label>
+            <input
+              type="text"
+              name="speed"
+              value={sheetData.speed}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Size
+            </label>
+            <input
+              type="text"
+              name="size"
+              value={sheetData.size}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Passive Perception
+            </label>
+            <input
+              type="text"
+              name="passivePerception"
+              value={sheetData.passivePerception}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Hit Dice
+            </label>
+            <input
+              type="text"
+              name="hitDice"
+              value={sheetData.hitDice}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+        </div>
+
+        {/* Equipment & Background */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          Equipment & Background
+        </h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Tools
+            </label>
+            <input
+              type="text"
+              name="tools"
+              value={sheetData.tools}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="List tools"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Languages
+            </label>
+            <input
+              type="text"
+              name="languages"
+              value={sheetData.languages}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="List languages"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Armor Training
+            </label>
+            <input
+              type="text"
+              name="armorTraining"
+              value={sheetData.armorTraining}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="Light, Medium, Heavy, etc."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Background
+            </label>
+            <input
+              type="text"
+              name="background"
+              value={sheetData.background}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="Character's background"
+            />
+          </div>
+        </div>
+
+        {/* Skills */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">Skills</h2>
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          {[
+            { label: "Animal Handling", name: "animalHandling" },
+            { label: "Insight", name: "insight" },
+            { label: "Medicine", name: "medicine" },
+            { label: "Perception", name: "perception" },
+            { label: "Survival", name: "survival" },
+            { label: "Deception", name: "deception" },
+            { label: "Intimidation", name: "intimidation" },
+            { label: "Performance", name: "performance" },
+            { label: "Persuasion", name: "persuasion" },
+            { label: "Acrobatics", name: "acrobatics" },
+            { label: "Sleight of Hand", name: "sleightOfHand" },
+            { label: "Stealth", name: "stealth" },
+            { label: "Athletics", name: "athletics" },
+            { label: "Arcana", name: "arcana" },
+            { label: "History", name: "history" },
+            { label: "Investigation", name: "investigation" },
+            { label: "Nature", name: "nature" },
+            { label: "Religion", name: "religion" }
+          ].map((skill) => (
+            <div key={skill.name}>
+              <label className="block text-sm font-medium text-amber-400">
+                {skill.label}
+              </label>
+              <input
+                type="text"
+                name={skill.name}
+                value={sheetData[skill.name]}
+                onChange={handleChange}
+                className="border p-1 rounded w-full"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Attacks & Spells */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          Attacks & Spells
+        </h2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border">
+            <thead>
+              <tr className="text-sm text-left">
+                <th className="border p-1">Name</th>
+                <th className="border p-1">Atk Bonus/DC</th>
+                <th className="border p-1">Damage & Type</th>
+                <th className="border p-1">Notes</th>
+                <th className="border p-1 text-center">Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(sheetData.attacksAndSpells || []).map((row, idx) => (
+                <AttackSpellRow
+                  key={idx}
+                  index={idx}
+                  row={row}
+                  onChangeRow={updateAttackSpellRow}
+                  onRemoveRow={removeAttackSpellRow}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <button
+          className="px-3 py-1 btn-dnd rounded mb-4"
+          onClick={addAttackSpellRow}
+        >
+          + Add Attack/Spell
+        </button>
+
+        {/* Cantrips / Basic Skills */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          Cantrips / Basic Skills
+        </h2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border">
+            <thead>
+              <tr className="text-sm text-left">
+                <th className="border p-1">Name</th>
+                <th className="border p-1">Notes/Effect</th>
+                <th className="border p-1 text-center">Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(sheetData.cantrips || []).map((row, idx) => (
+                <CantripRow
+                  key={idx}
+                  index={idx}
+                  row={row}
+                  onChangeRow={updateCantripRow}
+                  onRemoveRow={removeCantripRow}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <button
+          className="px-3 py-1 btn-dnd rounded mb-4"
+          onClick={addCantripRow}
+        >
+          + Add Cantrip / Basic Skill
+        </button>
+
+        {/* Other Features */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          Other Features
+        </h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Feats
+            </label>
+            <input
+              type="text"
+              name="feats"
+              value={sheetData.feats}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="Comma separated"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Class Features
+            </label>
+            <input
+              type="text"
+              name="classFeatures"
+              value={sheetData.classFeatures}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="Comma separated"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Species Traits
+            </label>
+            <input
+              type="text"
+              name="speciesTraits"
+              value={sheetData.speciesTraits}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="Comma separated"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Shields (Light/Medium/Heavy)
+            </label>
+            <input
+              type="text"
+              name="shields"
+              value={sheetData.shields}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Casting Time
+            </label>
+            <input
+              type="text"
+              name="castingTime"
+              value={sheetData.castingTime}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Concentration, Ritual & Materials
+            </label>
+            <input
+              type="text"
+              name="concentrationRitual"
+              value={sheetData.concentrationRitual}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="Details"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Currency (CP, SP, EP, GP, PP)
+            </label>
+            <input
+              type="text"
+              name="currency"
+              value={sheetData.currency}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              placeholder="e.g., 10 CP, 5 SP"
+            />
+          </div>
+        </div>
+
+        {/* Personality Traits, Ideals, Bonds, Flaws */}
+        <h2 className="text-xl font-bold text-amber-400 mb-2">Role-Play Details</h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Personality Traits
+            </label>
+            <textarea
+              name="personalityTraits"
+              value={sheetData.personalityTraits}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              rows="2"
+              placeholder="Describe your character's quirks, mannerisms, etc."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Ideals
+            </label>
+            <textarea
+              name="ideals"
+              value={sheetData.ideals}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              rows="2"
+              placeholder="Describe your character's core ideals or guiding principles."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Bonds
+            </label>
+            <textarea
+              name="bonds"
+              value={sheetData.bonds}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              rows="2"
+              placeholder="Important connections or relationships in your character's life."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-amber-400">
+              Flaws
+            </label>
+            <textarea
+              name="flaws"
+              value={sheetData.flaws}
+              onChange={handleChange}
+              className="border p-1 rounded w-full"
+              rows="2"
+              placeholder="Weaknesses or shortcomings that create drama or conflict."
+            />
+          </div>
+        </div>
+
+      </div>
+    );
+  }
+
+  /** ========== MAIN APP COMPONENT ========== */
+  function App() {
+    return (
+      <div className="min-h-screen p-4">
+        <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+          <DarkModeToggle />
+          <div className="flex gap-2">
+            <button className="px-3 py-1 btn-dnd rounded" onClick={backupLocalStorage}>
+              Backup Local Storage
+            </button>
+            <label className="px-3 py-1 btn-dnd rounded cursor-pointer text-sm">
+              Restore Data
+              <input
+                type="file"
+                accept=".json"
+                onChange={restoreLocalStorage}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
+        <CharacterSheet />
+      </div>
+    );
+  }
+
+  ReactDOM.render(<App />, document.getElementById("root"));
+</script>
 </body>
 </html>
